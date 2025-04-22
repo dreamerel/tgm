@@ -138,7 +138,7 @@ def get_user():
 
 
 @app.route('/api/telegram/accounts', methods=['GET'])
-@jwt_required()
+@jwt_required_custom
 def list_telegram_accounts():
     """Список аккаунтов Telegram пользователя"""
     try:
@@ -155,7 +155,7 @@ def list_telegram_accounts():
 
 
 @app.route('/api/telegram/accounts', methods=['POST'])
-@jwt_required()
+@jwt_required_custom
 def add_telegram_account():
     """Добавление нового аккаунта Telegram"""
     current_user_id = get_jwt_identity()
@@ -188,7 +188,7 @@ def add_telegram_account():
 
 
 @app.route('/api/telegram/contacts', methods=['GET'])
-@jwt_required()
+@jwt_required_custom
 def list_contacts():
     """Список контактов аккаунта Telegram"""
     account_id = request.args.get('account_id', type=int)
@@ -202,7 +202,7 @@ def list_contacts():
 
 
 @app.route('/api/telegram/contacts', methods=['POST'])
-@jwt_required()
+@jwt_required_custom
 def add_contact():
     """Добавление нового контакта"""
     data = request.json
@@ -234,7 +234,7 @@ def add_contact():
 
 
 @app.route('/api/telegram/contacts/import', methods=['POST'])
-@jwt_required()
+@jwt_required_custom
 def import_contacts():
     """Импорт контактов"""
     data = request.json
@@ -269,7 +269,7 @@ def import_contacts():
 
 
 @app.route('/api/telegram/chats', methods=['GET'])
-@jwt_required()
+@jwt_required_custom
 def list_chats():
     """Список чатов аккаунта Telegram"""
     account_id = request.args.get('account_id', type=int)
@@ -290,7 +290,7 @@ def list_chats():
 
 
 @app.route('/api/telegram/messages', methods=['GET'])
-@jwt_required()
+@jwt_required_custom
 def list_messages():
     """Список сообщений чата"""
     chat_id = request.args.get('chat_id', type=int)
@@ -304,7 +304,7 @@ def list_messages():
 
 
 @app.route('/api/telegram/messages', methods=['POST'])
-@jwt_required()
+@jwt_required_custom
 def send_message():
     """Отправка сообщения"""
     data = request.json
