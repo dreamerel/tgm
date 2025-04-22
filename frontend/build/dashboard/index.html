@@ -436,7 +436,7 @@
             }
           });
           
-          const accounts = response.data.accounts;
+          const accounts = response.data.accounts || [];
           
           if (accounts && accounts.length > 0) {
             // Отображаем первый аккаунт в селекторе
@@ -444,11 +444,55 @@
             document.querySelector('.account-icon').textContent = firstAccount.account_name.charAt(0).toUpperCase();
             document.querySelector('.account-name').textContent = firstAccount.account_name;
             document.querySelector('.account-phone').textContent = firstAccount.phone;
+          } else {
+            // Показываем сообщение о том, что аккаунтов нет
+            document.querySelector('.account-icon').textContent = '?';
+            document.querySelector('.account-name').textContent = 'Нет активных аккаунтов';
+            document.querySelector('.account-phone').textContent = 'Добавьте аккаунт Telegram';
+            
+            // Добавляем кнопку для добавления аккаунта
+            const accountsSection = document.querySelector('.accounts');
+            if (accountsSection && !document.getElementById('add-account-btn')) {
+              const addAccountBtn = document.createElement('button');
+              addAccountBtn.id = 'add-account-btn';
+              addAccountBtn.className = 'btn btn-primary mt-3';
+              addAccountBtn.textContent = 'Добавить аккаунт Telegram';
+              addAccountBtn.addEventListener('click', () => {
+                // Показываем модальное окно для добавления аккаунта
+                const accountName = prompt('Введите название аккаунта:');
+                const accountPhone = prompt('Введите номер телефона:');
+                
+                if (accountName && accountPhone) {
+                  // Отправляем запрос на добавление аккаунта
+                  axios.post('/api/telegram/accounts', 
+                    { account_name: accountName, phone: accountPhone },
+                    {
+                      headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                      }
+                    }
+                  )
+                  .then(response => {
+                    alert('Аккаунт успешно добавлен!');
+                    // Перезагружаем список аккаунтов
+                    loadAccounts();
+                  })
+                  .catch(error => {
+                    console.error('Ошибка добавления аккаунта:', error);
+                    alert('Не удалось добавить аккаунт. Пожалуйста, попробуйте еще раз.');
+                  });
+                }
+              });
+              accountsSection.appendChild(addAccountBtn);
+            }
           }
         } catch (error) {
           console.error('Ошибка загрузки аккаунтов:', error);
           // Если ошибка не связана с авторизацией, показываем сообщение, что аккаунтов нет
-          // но не выходим из приложения
+          document.querySelector('.account-icon').textContent = '!';
+          document.querySelector('.account-name').textContent = 'Ошибка загрузки';
+          document.querySelector('.account-phone').textContent = 'Попробуйте обновить страницу';
         }
       };
       
