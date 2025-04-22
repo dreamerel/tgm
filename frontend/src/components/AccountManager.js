@@ -220,53 +220,39 @@ function AccountManager({ accounts, onAddAccount }) {
             </div>
             
             <div className="mb-3">
-              <div className="form-check form-switch">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="showApiFieldsSwitch"
-                  checked={showApiFields}
-                  onChange={() => setShowApiFields(!showApiFields)}
-                />
-                <label className="form-check-label" htmlFor="showApiFieldsSwitch">
-                  Добавить API ID и API Hash
-                </label>
-              </div>
-              <div className="form-text">
-                Для полной функциональности нужны API ID и API Hash от Telegram.
+              <div className="form-text mb-2">
+                Для работы с Telegram необходимо указать API ID и API Hash.
                 <a href="https://my.telegram.org/apps" target="_blank" rel="noopener noreferrer" className="ms-1">
                   Получить их можно здесь
                 </a>
               </div>
-            </div>
             
-            {showApiFields && (
-              <>
-                <div className="mb-3">
-                  <label htmlFor="apiId" className="form-label">API ID</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    id="apiId"
-                    value={newAccount.api_id}
-                    onChange={(e) => setNewAccount({ ...newAccount, api_id: e.target.value })}
-                    placeholder="12345678"
-                  />
-                </div>
-                
-                <div className="mb-3">
-                  <label htmlFor="apiHash" className="form-label">API Hash</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    id="apiHash"
-                    value={newAccount.api_hash}
-                    onChange={(e) => setNewAccount({ ...newAccount, api_hash: e.target.value })}
-                    placeholder="1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p"
-                  />
-                </div>
-              </>
-            )}
+              <div className="mb-3">
+                <label htmlFor="apiId" className="form-label">API ID</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  id="apiId"
+                  value={newAccount.api_id}
+                  onChange={(e) => setNewAccount({ ...newAccount, api_id: e.target.value })}
+                  placeholder="12345678"
+                  required
+                />
+              </div>
+              
+              <div className="mb-3">
+                <label htmlFor="apiHash" className="form-label">API Hash</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  id="apiHash"
+                  value={newAccount.api_hash}
+                  onChange={(e) => setNewAccount({ ...newAccount, api_hash: e.target.value })}
+                  placeholder="1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p"
+                  required
+                />
+              </div>
+            </div>
             
             <div className="text-end">
               <button 

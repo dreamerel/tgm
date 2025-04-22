@@ -10,6 +10,13 @@ function TelegramVerification({ account, onSuccess, onCancel }) {
   const [phoneCodeHash, setPhoneCodeHash] = useState('');
   const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
   
+  // Автоматически отправляем запрос на код при открытии компонента
+  React.useEffect(() => {
+    if (step === 'sendCode') {
+      handleSendCode();
+    }
+  }, []);
+  
   // Отправка запроса на код подтверждения
   const handleSendCode = async () => {
     if (!account || !account.phone || !account.api_id || !account.api_hash) {
@@ -130,7 +137,7 @@ function TelegramVerification({ account, onSuccess, onCancel }) {
       <h5>Введите код подтверждения</h5>
       <p>
         На ваш аккаунт Telegram отправлен код подтверждения.
-        Введите его в поле ниже для завершения авторизации.
+        Проверьте приложение Telegram на вашем устройстве и введите полученный код в поле ниже.
       </p>
       
       <form onSubmit={handleVerifyCode}>
@@ -170,10 +177,13 @@ function TelegramVerification({ account, onSuccess, onCancel }) {
           <button 
             type="button"
             className="btn btn-secondary" 
-            onClick={() => setStep('sendCode')}
+            onClick={() => {
+              setStep('sendCode');
+              handleSendCode(); // Автоматически отправляем новый код
+            }}
             disabled={loading}
           >
-            Назад
+            Запросить новый код
           </button>
           <button 
             type="submit" 
@@ -196,7 +206,16 @@ function TelegramVerification({ account, onSuccess, onCancel }) {
           </div>
         )}
         
-        {step === 'sendCode' && renderSendCodeStep()}
+        {loading && step === 'sendCode' && (
+          <div className="text-center my-5">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Отправка запроса на код верификации...</span>
+            </div>
+            <p className="mt-3">Отправка запроса на код верификации в Telegram...</p>
+          </div>
+        )}
+        
+        {!loading && step === 'sendCode' && renderSendCodeStep()}
         {step === 'enterCode' && renderEnterCodeStep()}
       </div>
     </div>
