@@ -9,21 +9,28 @@ def jwt_required_custom(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         try:
+            print(f"Запрос: {request.method} {request.path}")
+            print(f"Заголовки: {request.headers}")
+            
             verify_jwt_in_request()
             
             # Проверяем, что identity существует и может быть преобразован в int
             current_user_id = get_jwt_identity()
+            print(f"JWT identity: {current_user_id}")
             user_id = int(current_user_id)
             
             # Проверяем, что пользователь существует в системе
             user = get_user_by_id(user_id)
             if not user:
+                print(f"Пользователь с ID {user_id} не найден")
                 return jsonify({"error": "Пользователь не найден"}), 404
                 
             return fn(*args, **kwargs)
-        except ValueError:
+        except ValueError as ve:
+            print(f"Ошибка формата идентификатора: {str(ve)}")
             return jsonify({"error": "Неверный формат идентификатора пользователя"}), 422
         except Exception as e:
+            print(f"Ошибка авторизации: {str(e)}")
             return jsonify({"error": f"Ошибка авторизации: {str(e)}"}), 401
     return wrapper
 
