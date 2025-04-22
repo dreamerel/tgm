@@ -25,6 +25,3 @@ jwt = JWTManager(app)
 
 # Включение CORS для разработки
 CORS(app, resources={r"/*": {"origins": "*"}})
-
-# Импорт маршрутов после создания приложения
-from backend.routes import *

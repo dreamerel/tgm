@@ -1,0 +1,160 @@
+{
+  "users": {
+    "1": {
+      "id": 1,
+      "username": "demo",
+      "password_hash": "scrypt:32768:8:1$p3FYOBL7qxs3C1Y0$11cc52f5c2669d7afe49a6c52249ab32a5bae01e4dc82ee9d7bb1700903225d5ad2ecb28635c027fdb6e905efeb82a53e86786f252a02214b5fe770255e4c7ea",
+      "email": "demo@example.com",
+      "created_at": "2025-04-22T19:52:37.399859"
+    }
+  },
+  "telegram_accounts": {
+    "1": {
+      "id": 1,
+      "user_id": 1,
+      "account_name": "Личный",
+      "phone": "+79123456789",
+      "created_at": "2025-04-22T19:52:37.400650"
+    },
+    "2": {
+      "id": 2,
+      "user_id": 1,
+      "account_name": "Рабочий",
+      "phone": "+79987654321",
+      "created_at": "2025-04-22T19:52:37.401213"
+    }
+  },
+  "contacts": {
+    "1": {
+      "id": 1,
+      "account_id": 1,
+      "name": "Иван Иванов",
+      "phone": "+79001112233",
+      "created_at": "2025-04-22T19:52:37.401561"
+    },
+    "2": {
+      "id": 2,
+      "account_id": 1,
+      "name": "Мария Петрова",
+      "phone": "+79004445566",
+      "created_at": "2025-04-22T19:52:37.404253"
+    },
+    "3": {
+      "id": 3,
+      "account_id": 2,
+      "name": "ООО \"Компания\"",
+      "phone": "+79007778899",
+      "created_at": "2025-04-22T19:52:37.406516"
+    }
+  },
+  "chats": {
+    "1": {
+      "id": 1,
+      "account_id": 1,
+      "contact_id": 1,
+      "last_message": "Привет! Все хорошо, спасибо!",
+      "unread_count": 1,
+      "created_at": "2025-04-22T19:52:37.407944"
+    },
+    "2": {
+      "id": 2,
+      "account_id": 1,
+      "contact_id": 2,
+      "last_message": "Добрый день, когда встречаемся?",
+      "unread_count": 1,
+      "created_at": "2025-04-22T19:52:37.408229"
+    },
+    "3": {
+      "id": 3,
+      "account_id": 2,
+      "contact_id": 3,
+      "last_message": "Добрый день, отправляю коммерческое предложение.",
+      "unread_count": 1,
+      "created_at": "2025-04-22T19:52:37.408511"
+    }
+  },
+  "messages": {
+    "1": {
+      "id": 1,
+      "chat_id": 1,
+      "sender_id": 1,
+      "text": "Привет, как дела?",
+      "timestamp": "2025-04-22T19:52:37.408763",
+      "is_read": false
+    },
+    "2": {
+      "id": 2,
+      "chat_id": 1,
+      "sender_id": 0,
+      "text": "Привет! Все хорошо, спасибо!",
+      "timestamp": "2025-04-22T19:52:37.409062",
+      "is_read": false
+    },
+    "3": {
+      "id": 3,
+      "chat_id": 2,
+      "sender_id": 2,
+      "text": "Добрый день, когда встречаемся?",
+      "timestamp": "2025-04-22T19:52:37.414444",
+      "is_read": false
+    },
+    "4": {
+      "id": 4,
+      "chat_id": 3,
+      "sender_id": 3,
+      "text": "Добрый день, отправляю коммерческое предложение.",
+      "timestamp": "2025-04-22T19:52:37.416913",
+      "is_read": false
+    }
+  },
+  "auto_replies": {
+    "1": {
+      "id": 1,
+      "account_id": 1,
+      "trigger_phrase": "привет",
+      "reply_text": "Привет! Чем могу помочь?",
+      "is_active": true,
+      "created_at": "2025-04-22T19:52:37.419137"
+    },
+    "2": {
+      "id": 2,
+      "account_id": 2,
+      "trigger_phrase": "цена",
+      "reply_text": "Актуальные цены можно узнать на нашем сайте.",
+      "is_active": true,
+      "created_at": "2025-04-22T19:52:37.419899"
+    }
+  },
+  "mass_sendings": {
+    "1": {
+      "id": 1,
+      "account_id": 1,
+      "message": "Привет! Приглашаю на мероприятие!",
+      "contacts": [
+        1,
+        2
+      ],
+      "delay": 60,
+      "frequency": 2,
+      "status": "pending",
+      "sent_count": 0,
+      "created_at": "2025-04-22T19:52:37.420592"
+    }
+  },
+  "statistics": {
+    "1": {
+      "id": 1,
+      "account_id": 1,
+      "date": "2025-04-22",
+      "sent_messages": 10,
+      "received_messages": 15
+    },
+    "2": {
+      "id": 2,
+      "account_id": 2,
+      "date": "2025-04-22",
+      "sent_messages": 5,
+      "received_messages": 3
+    }
+  }
+}
