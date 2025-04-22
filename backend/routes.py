@@ -475,10 +475,17 @@ from flask import send_from_directory
 def serve_react(path):
     """
     Обслуживает React-приложение.
-    Все пути, кроме /api/*, направляются на index.html фронтенда
+    Все пути, кроме /api/*, направляются на соответствующие HTML файлы
     """
     if path.startswith('api/'):
         return jsonify({"error": "Not Found"}), 404
+    
+    # Проверяем известные маршруты
+    if path == 'register':
+        return send_from_directory(str(frontend_build_path), 'register.html')
+    
+    if path.startswith('dashboard'):
+        return send_from_directory(str(frontend_build_path), 'dashboard/index.html')
         
     # Проверяем, существует ли запрашиваемый файл
     if path and (frontend_build_path / path).exists():
