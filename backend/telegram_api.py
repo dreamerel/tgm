@@ -261,6 +261,105 @@ async def get_contacts(phone):
         logger.error(f"Ошибка при получении контактов: {str(e)}")
         return {'error': f'Ошибка при получении контактов: {str(e)}'}
 
+async def get_dialogs(phone, limit=100):
+    """
+    Получает список диалогов (чатов) из Telegram
+    
+    phone: Номер телефона аккаунта
+    limit: Максимальное количество диалогов для получения
+    """
+    if phone not in clients:
+        return {'error': 'Аккаунт не авторизован'}
+    
+    client = clients[phone]
+    
+    try:
+        dialogs = []
+        async for dialog in client.iter_dialogs(limit=limit):
+            # Проверяем, является ли диалог чатом с пользователем (не группой, не каналом)
+            if dialog.is_user:
+                entity = dialog.entity
+                
+                # Формируем информацию о диалоге
+                dialog_info = {
+                    'id': dialog.id,
+                    'name': '',
+                    'entity_id': entity.id,
+                    'username': getattr(entity, 'username', None),
+                    'unread_count': dialog.unread_count,
+                    'last_message': None,
+                    'date': dialog.date.isoformat() if dialog.date else None
+                }
+                
+                # Добавляем имя в зависимости от доступных атрибутов
+                if hasattr(entity, 'first_name'):
+                    dialog_info['name'] = entity.first_name
+                    if hasattr(entity, 'last_name') and entity.last_name:
+                        dialog_info['name'] += f" {entity.last_name}"
+                
+                # Если есть последнее сообщение, добавляем его информацию
+                if dialog.message:
+                    dialog_info['last_message'] = {
+                        'id': dialog.message.id,
+                        'text': dialog.message.text,
+                        'date': dialog.message.date.isoformat() if dialog.message.date else None,
+                        'out': dialog.message.out  # True если сообщение отправлено нами
+                    }
+                
+                dialogs.append(dialog_info)
+        
+        return {
+            'success': True,
+            'dialogs': dialogs
+        }
+    
+    except Exception as e:
+        logger.error(f"Ошибка при получении диалогов: {str(e)}")
+        return {'error': f'Ошибка при получении диалогов: {str(e)}'}
+
+async def get_messages(phone, entity_id, limit=100):
+    """
+    Получает сообщения из указанного диалога
+    
+    phone: Номер телефона аккаунта
+    entity_id: ID сущности (пользователя, группы, канала)
+    limit: Максимальное количество сообщений для получения
+    """
+    if phone not in clients:
+        return {'error': 'Аккаунт не авторизован'}
+    
+    client = clients[phone]
+    
+    try:
+        # Получаем сущность по ID
+        entity = await client.get_entity(entity_id)
+        
+        messages = []
+        async for message in client.iter_messages(entity, limit=limit):
+            message_info = {
+                'id': message.id,
+                'text': message.text,
+                'date': message.date.isoformat() if message.date else None,
+                'out': message.out,  # True если сообщение отправлено нами
+                'sender_id': message.sender_id,
+                'reply_to_msg_id': message.reply_to_msg_id
+            }
+            
+            messages.append(message_info)
+        
+        # Сортируем сообщения по дате (от самых старых к новым)
+        messages.sort(key=lambda x: x['date'])
+        
+        return {
+            'success': True,
+            'entity_id': entity_id,
+            'messages': messages
+        }
+    
+    except Exception as e:
+        logger.error(f"Ошибка при получении сообщений: {str(e)}")
+        return {'error': f'Ошибка при получении сообщений: {str(e)}'}
+
 async def send_message_to_contact(phone, contact_id, message):
     """
     Отправляет сообщение контакту

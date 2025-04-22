@@ -273,35 +273,11 @@ def add_telegram_account():
         except ValueError:
             return jsonify({'error': 'API ID должен быть числом'}), 400
     
-    # Если API ID и API Hash не предоставлены, используем мок для демо-режима
+    # Если API ID и API Hash не предоставлены, возвращаем ошибку
     if not api_id or not api_hash:
-        # Используем мок для демо-режима
-        params = {
-            'phone': phone
-        }
-        result = simulate_telegram_api_call('add_account', params)
-        
-        if 'error' in result:
-            return jsonify({'error': result['error']}), 400
-        
-        # Сохраняем аккаунт в демо-режиме
-        account_id = save_telegram_account(user_id, account_name, phone)
-        
-        # Определяем статус аккаунта
-        status = 'waiting_for_api'
-        message = 'Аккаунт Telegram успешно добавлен. Для полной функциональности необходимо указать API ID и API Hash'
-        
         return jsonify({
-            'message': message,
-            'account': {
-                'id': account_id,
-                'account_name': account_name,
-                'phone': phone,
-                'api_id': None,
-                'api_hash': None,
-                'status': status
-            }
-        }), 201
+            'error': 'Необходимо указать API ID и API Hash для работы с Telegram. Получите их на https://my.telegram.org/apps'
+        }), 400
     
     # Если API ID и API Hash предоставлены, пытаемся подключиться через Telethon
     result = run_async(create_telegram_client(phone, api_id, api_hash))
@@ -343,20 +319,63 @@ def add_telegram_account():
 @jwt_required_custom
 def list_contacts():
     """Список контактов аккаунта Telegram"""
+    from backend.telegram_api import run_async, get_contacts as tg_get_contacts
+    
     account_id = request.args.get('account_id', type=int)
     
     if not account_id:
         return jsonify({'error': 'Требуется указать ID аккаунта'}), 400
     
-    contacts_list = get_contacts(account_id)
+    # Получаем аккаунт по ID
+    current_user_id = get_jwt_identity()
+    user_id = int(current_user_id)
     
-    return jsonify({'contacts': contacts_list}), 200
+    accounts = get_telegram_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    
+    if not account:
+        return jsonify({'error': 'Аккаунт не найден'}), 404
+    
+    # Если у аккаунта есть API ID и API Hash, получаем контакты через Telegram API
+    if account.get('api_id') and account.get('api_hash'):
+        result = run_async(tg_get_contacts(account['phone']))
+        
+        if 'error' in result:
+            return jsonify({'error': result['error']}), 400
+        
+        # Обновляем контакты в нашей базе данных
+        contacts_from_tg = result.get('contacts', [])
+        saved_contacts = []
+        
+        for contact in contacts_from_tg:
+            name = contact.get('first_name', '')
+            if contact.get('last_name'):
+                name += f" {contact.get('last_name')}"
+            
+            saved_contact_id = save_contact(
+                account_id, 
+                name or "Контакт без имени", 
+                contact.get('phone', '') or ""
+            )
+            
+            saved_contacts.append({
+                'id': saved_contact_id,
+                'name': name or "Контакт без имени",
+                'phone': contact.get('phone', '') or "",
+                'username': contact.get('username', ''),
+                'telegram_id': contact.get('id')
+            })
+        
+        return jsonify({'contacts': saved_contacts}), 200
+    
+    # Если API ID и API Hash не указаны, возвращаем ошибку
+    return jsonify({'error': 'Для получения контактов необходимо указать API ID и API Hash для аккаунта'}), 400
 
 
 @app.route('/api/telegram/contacts', methods=['POST'])
 @jwt_required_custom
 def add_contact():
-    """Добавление нового контакта"""
+    """Добавление нового контакта через Telegram API"""
     data = request.json
     
     account_id = data.get('account_id')
@@ -366,23 +385,35 @@ def add_contact():
     if not account_id or not name or not phone:
         return jsonify({'error': 'Требуется указать ID аккаунта, имя и номер телефона'}), 400
     
-    # Проверяем возможность добавления контакта через мок API Telegram
-    result = simulate_telegram_api_call('add_contact', {'phone': phone, 'name': name})
+    # Получаем аккаунт по ID
+    current_user_id = get_jwt_identity()
+    user_id = int(current_user_id)
     
-    if 'error' in result:
-        return jsonify({'error': result['error']}), 400
+    accounts = get_telegram_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
     
-    contact_id = save_contact(account_id, name, phone)
+    if not account:
+        return jsonify({'error': 'Аккаунт не найден'}), 404
     
-    return jsonify({
-        'message': 'Контакт успешно добавлен',
-        'contact': {
-            'id': contact_id,
-            'account_id': account_id,
-            'name': name,
-            'phone': phone
-        }
-    }), 201
+    # Если у аккаунта есть API ID и API Hash
+    if account.get('api_id') and account.get('api_hash'):
+        # TODO: Реализовать добавление контакта через Telegram API
+        # Для этого нужно добавить соответствующий метод в telegram_api.py
+        # В данной версии просто сохраняем контакт в базе данных
+        contact_id = save_contact(account_id, name, phone)
+        
+        return jsonify({
+            'message': 'Контакт успешно добавлен',
+            'contact': {
+                'id': contact_id,
+                'account_id': account_id,
+                'name': name,
+                'phone': phone
+            }
+        }), 201
+    
+    # Если API ID и API Hash не указаны, возвращаем ошибку
+    return jsonify({'error': 'Для добавления контакта необходимо указать API ID и API Hash для аккаунта'}), 400
 
 
 @app.route('/api/telegram/contacts/import', methods=['POST'])
@@ -397,38 +428,137 @@ def import_contacts():
     if not account_id or not contacts_data:
         return jsonify({'error': 'Требуется указать ID аккаунта и список контактов'}), 400
     
-    imported_contacts = []
-    for contact in contacts_data:
-        name = contact.get('name')
-        phone = contact.get('phone')
-        
-        if name and phone:
-            # Мок запрос к API
-            result = simulate_telegram_api_call('add_contact', {'phone': phone, 'name': name})
+    # Получаем аккаунт по ID
+    current_user_id = get_jwt_identity()
+    user_id = int(current_user_id)
+    
+    accounts = get_telegram_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    
+    if not account:
+        return jsonify({'error': 'Аккаунт не найден'}), 404
+    
+    # Если у аккаунта есть API ID и API Hash
+    if account.get('api_id') and account.get('api_hash'):
+        imported_contacts = []
+        for contact in contacts_data:
+            name = contact.get('name')
+            phone = contact.get('phone')
             
-            if 'error' not in result:
+            if name and phone:
+                # TODO: В будущем добавить метод для реального добавления контакта через Telegram API
                 contact_id = save_contact(account_id, name, phone)
                 imported_contacts.append({
                     'id': contact_id,
                     'name': name,
                     'phone': phone
                 })
+        
+        return jsonify({
+            'message': f'Успешно импортировано {len(imported_contacts)} контактов',
+            'contacts': imported_contacts
+        }), 200
     
-    return jsonify({
-        'message': f'Успешно импортировано {len(imported_contacts)} контактов',
-        'contacts': imported_contacts
-    }), 200
+    # Если API ID и API Hash не указаны, возвращаем ошибку
+    return jsonify({'error': 'Для импорта контактов необходимо указать API ID и API Hash для аккаунта'}), 400
 
 
 @app.route('/api/telegram/chats', methods=['GET'])
 @jwt_required_custom
 def list_chats():
     """Список чатов аккаунта Telegram"""
+    from backend.telegram_api import run_async, get_dialogs
+    
     account_id = request.args.get('account_id', type=int)
     
     if not account_id:
         return jsonify({'error': 'Требуется указать ID аккаунта'}), 400
     
+    # Получаем аккаунт по ID
+    current_user_id = get_jwt_identity()
+    user_id = int(current_user_id)
+    
+    accounts = get_telegram_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    
+    if not account:
+        return jsonify({'error': 'Аккаунт не найден'}), 404
+    
+    # Если у аккаунта есть API ID и API Hash, получаем чаты через Telegram API
+    if account.get('api_id') and account.get('api_hash'):
+        result = run_async(get_dialogs(account['phone']))
+        
+        if 'error' in result:
+            return jsonify({'error': result['error']}), 400
+        
+        # Преобразуем диалоги в формат чатов для нашего приложения
+        dialogs_from_tg = result.get('dialogs', [])
+        saved_chats = []
+        
+        for dialog in dialogs_from_tg:
+            # Сначала добавляем или находим контакт
+            name = dialog.get('name', '')
+            
+            contact_id = None
+            contacts = get_contacts(account_id)
+            
+            # Ищем контакт по entity_id (Telegram ID)
+            contact = next((c for c in contacts if c.get('telegram_id') == dialog.get('entity_id')), None)
+            
+            if contact:
+                contact_id = contact['id']
+            else:
+                # Создаем новый контакт
+                contact_id = save_contact(
+                    account_id, 
+                    name or "Неизвестный контакт", 
+                    ""  # Телефон неизвестен
+                )
+            
+            # Сохраняем чат
+            chat_id = None
+            chats = get_chats(account_id)
+            
+            # Ищем существующий чат по Telegram ID
+            chat = next((c for c in chats if c.get('telegram_id') == dialog.get('id')), None)
+            
+            if chat:
+                chat_id = chat['id']
+                # Обновляем информацию в чате
+                # В текущей модели на основе JSON это требует отдельной реализации
+            else:
+                # Создаем новый чат
+                last_message = ""
+                if dialog.get('last_message') and dialog.get('last_message').get('text'):
+                    last_message = dialog.get('last_message').get('text')
+                
+                chat_id = save_chat(
+                    account_id, 
+                    contact_id, 
+                    last_message,
+                    dialog.get('unread_count', 0)
+                )
+            
+            saved_chat = {
+                'id': chat_id,
+                'account_id': account_id,
+                'contact_id': contact_id,
+                'telegram_id': dialog.get('id'),
+                'telegram_entity_id': dialog.get('entity_id'),
+                'name': name,
+                'last_message': dialog.get('last_message', {}).get('text', ''),
+                'unread_count': dialog.get('unread_count', 0),
+                'contact': {
+                    'id': contact_id,
+                    'name': name
+                }
+            }
+            
+            saved_chats.append(saved_chat)
+        
+        return jsonify({'chats': saved_chats}), 200
+    
+    # Если API ID и API Hash не указаны, возвращаем существующие чаты из нашей базы данных
     chats_list = get_chats(account_id)
     
     # Добавляем информацию о контакте в каждый чат
@@ -445,11 +575,73 @@ def list_chats():
 @jwt_required_custom
 def list_messages():
     """Список сообщений чата"""
+    from backend.telegram_api import run_async, get_messages as tg_get_messages
+    
     chat_id = request.args.get('chat_id', type=int)
     
     if not chat_id:
         return jsonify({'error': 'Требуется указать ID чата'}), 400
     
+    # Находим чат по ID
+    current_user_id = get_jwt_identity()
+    user_id = int(current_user_id)
+    
+    # Собираем все чаты из всех аккаунтов пользователя
+    all_chats = []
+    for account in get_telegram_accounts(user_id):
+        all_chats.extend(get_chats(account['id']))
+    
+    chat = next((c for c in all_chats if c['id'] == chat_id), None)
+    
+    if not chat:
+        return jsonify({'error': 'Чат не найден'}), 404
+    
+    account_id = chat['account_id']
+    
+    # Получаем аккаунт по ID
+    accounts = get_telegram_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
+    
+    if not account:
+        return jsonify({'error': 'Аккаунт не найден'}), 404
+    
+    # Если у аккаунта есть API ID и API Hash и в чате есть Telegram ID сущности
+    if account.get('api_id') and account.get('api_hash') and chat.get('telegram_entity_id'):
+        result = run_async(tg_get_messages(account['phone'], chat['telegram_entity_id']))
+        
+        if 'error' in result:
+            return jsonify({'error': result['error']}), 400
+        
+        # Преобразуем сообщения в формат для нашего приложения
+        messages_from_tg = result.get('messages', [])
+        saved_messages = []
+        
+        for msg in messages_from_tg:
+            # Определяем отправителя сообщения
+            sender_id = chat['contact_id']  # По умолчанию, сообщение от контакта
+            if msg.get('out', False):
+                sender_id = user_id  # Если сообщение исходящее, отправитель - текущий пользователь
+            
+            # Сохраняем сообщение в нашей базе данных
+            # В реальном приложении нужно избегать дублирования сообщений
+            message_id = save_message(
+                chat_id,
+                sender_id,
+                msg.get('text', '')
+            )
+            
+            saved_messages.append({
+                'id': message_id,
+                'chat_id': chat_id,
+                'sender_id': sender_id,
+                'text': msg.get('text', ''),
+                'date': msg.get('date'),
+                'telegram_id': msg.get('id')
+            })
+        
+        return jsonify({'messages': saved_messages}), 200
+    
+    # Если API ID и API Hash не указаны или нет Telegram entity ID, возвращаем сообщения из локальной базы
     messages_list = get_messages(chat_id)
     
     return jsonify({'messages': messages_list}), 200
@@ -458,7 +650,9 @@ def list_messages():
 @app.route('/api/telegram/messages', methods=['POST'])
 @jwt_required_custom
 def send_message():
-    """Отправка сообщения"""
+    """Отправка сообщения через Telegram API"""
+    from backend.telegram_api import run_async, send_message_to_contact
+    
     data = request.json
     
     chat_id = data.get('chat_id')
@@ -480,23 +674,44 @@ def send_message():
     if not chat:
         return jsonify({'error': 'Чат не найден'}), 404
     
-    # Мок запрос к API для отправки сообщения
-    result = simulate_telegram_api_call('send_message', {
-        'chat_id': chat_id,
-        'text': message_text
-    })
+    account_id = chat['account_id']
     
-    if 'error' in result:
-        return jsonify({'error': result['error']}), 400
+    # Получаем аккаунт по ID
+    accounts = get_telegram_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == account_id), None)
     
-    # Сохраняем сообщение как отправленное пользователем
-    # current_user_id уже определен выше, используем user_id после преобразования
+    if not account:
+        return jsonify({'error': 'Аккаунт не найден'}), 404
+    
+    # Если у аккаунта есть API ID и API Hash и в чате есть Telegram ID сущности
+    if account.get('api_id') and account.get('api_hash') and chat.get('telegram_entity_id'):
+        entity_id = chat['telegram_entity_id']
+        result = run_async(send_message_to_contact(account['phone'], entity_id, message_text))
+        
+        if 'error' in result:
+            return jsonify({'error': result['error']}), 400
+        
+        # Сохраняем сообщение как отправленное пользователем
+        message_id = save_message(chat_id, user_id, message_text)
+        
+        # Обновляем статистику
+        update_statistics(account_id, sent=1)
+        
+        return jsonify({
+            'message': 'Сообщение успешно отправлено',
+            'message_id': message_id,
+            'telegram_message_id': result.get('message_id'),
+            'date': result.get('date')
+        }), 201
+    
+    # Если API ID и API Hash не указаны или нет Telegram entity ID
+    # Сохраняем сообщение как отправленное пользователем (в локальной базе)
     message_id = save_message(chat_id, user_id, message_text)
     
     # Обновляем статистику
     update_statistics(chat['account_id'], sent=1)
     
-    # Проверяем на авто-ответ
+    # Проверяем на авто-ответ (для демо-режима)
     auto_replies_list = get_auto_replies(chat['account_id'])
     for auto_reply in auto_replies_list:
         if auto_reply['is_active'] and auto_reply['trigger_phrase'].lower() in message_text.lower():
@@ -512,7 +727,7 @@ def send_message():
             break
     
     return jsonify({
-        'message': 'Сообщение успешно отправлено',
+        'message': 'Сообщение успешно отправлено (в локальном режиме)',
         'message_id': message_id
     }), 201
 
