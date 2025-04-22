@@ -383,10 +383,34 @@
         } catch (error) {
           console.error('Ошибка проверки авторизации:', error);
           
-          // При ошибке авторизации перенаправляем на страницу входа
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          window.location.href = '/';
+          // Проверяем, нужно ли обновить токены или выйти
+          if (error.response && error.response.status === 401) {
+            // Пробуем обновить токен
+            try {
+              const refresh_token = localStorage.getItem('refresh_token');
+              if (refresh_token) {
+                const refreshResponse = await axios.post('/api/refresh', {}, {
+                  headers: {
+                    'Authorization': `Bearer ${refresh_token}`
+                  }
+                });
+                
+                localStorage.setItem('access_token', refreshResponse.data.access_token);
+                // Заново проверяем авторизацию с новым токеном
+                return checkAuth();
+              }
+            } catch (refreshError) {
+              console.error('Ошибка обновления токена:', refreshError);
+              // Если не удалось обновить токен, выходим
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('refresh_token');
+              window.location.href = '/';
+            }
+          } else {
+            // Если ошибка не связана с авторизацией, просто выводим ее в консоль
+            // но не выходим из приложения
+            console.error('Ошибка запроса к API:', error);
+          }
         }
       };
       
@@ -397,30 +421,39 @@
         window.location.href = '/';
       });
       
+      // Функция для загрузки списка аккаунтов Telegram
+      const loadAccounts = async () => {
+        try {
+          const token = localStorage.getItem('access_token');
+          if (!token) return;
+          
+          const response = await axios.get('/api/telegram/accounts', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          const accounts = response.data.accounts;
+          
+          if (accounts && accounts.length > 0) {
+            // Отображаем первый аккаунт в селекторе
+            const firstAccount = accounts[0];
+            document.querySelector('.account-icon').textContent = firstAccount.account_name.charAt(0).toUpperCase();
+            document.querySelector('.account-name').textContent = firstAccount.account_name;
+            document.querySelector('.account-phone').textContent = firstAccount.phone;
+          }
+        } catch (error) {
+          console.error('Ошибка загрузки аккаунтов:', error);
+          // Если ошибка не связана с авторизацией, показываем сообщение, что аккаунтов нет
+          // но не выходим из приложения
+        }
+      };
+      
       // Проверяем авторизацию при загрузке страницы
       await checkAuth();
       
       // Загружаем список аккаунтов Telegram
-      try {
-        const token = localStorage.getItem('access_token');
-        const response = await axios.get('/api/telegram/accounts', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        const accounts = response.data.accounts;
-        
-        if (accounts && accounts.length > 0) {
-          // Отображаем первый аккаунт в селекторе
-          const firstAccount = accounts[0];
-          document.querySelector('.account-icon').textContent = firstAccount.account_name.charAt(0).toUpperCase();
-          document.querySelector('.account-name').textContent = firstAccount.account_name;
-          document.querySelector('.account-phone').textContent = firstAccount.phone;
-        }
-      } catch (error) {
-        console.error('Ошибка загрузки аккаунтов:', error);
-      }
+      await loadAccounts();
     });
   </script>
 </body>
