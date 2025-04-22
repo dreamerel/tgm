@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
   // Функция для входа пользователя
   const login = async (username, password) => {
     try {
-      const response = await api.post('/api/login', { username, password });
+      const response = await api.post('/api/auth/login', { username, password });
       
       // Сохраняем токены в localStorage
       localStorage.setItem('access_token', response.data.access_token);

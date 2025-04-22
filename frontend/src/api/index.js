@@ -47,7 +47,7 @@ api.interceptors.response.use(
           return Promise.reject(error);
         }
         
-        const response = await axios.post(`${API_BASE_URL}/api/refresh`, {}, {
+        const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {}, {
           headers: {
             'Authorization': `Bearer ${refreshToken}`
           }
