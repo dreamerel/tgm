@@ -6,6 +6,13 @@
       "password_hash": "scrypt:32768:8:1$p3FYOBL7qxs3C1Y0$11cc52f5c2669d7afe49a6c52249ab32a5bae01e4dc82ee9d7bb1700903225d5ad2ecb28635c027fdb6e905efeb82a53e86786f252a02214b5fe770255e4c7ea",
       "email": "demo@example.com",
       "created_at": "2025-04-22T19:52:37.399859"
+    },
+    "2": {
+      "id": 2,
+      "username": "testuser",
+      "password_hash": "scrypt:32768:8:1$HWJZWeGIUOvhJoyy$2d39fc7e56ffefb1fc6041849ab3037882376e0b1c320d2da75c8eb085cce96048cca2578baa45a322a6b31e3cf0136ffffae421be8e37516736cc83305775c1",
+      "email": "test@example.com",
+      "created_at": "2025-04-22T23:01:27.336434"
     }
   },
   "telegram_accounts": {},
