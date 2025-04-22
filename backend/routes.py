@@ -222,23 +222,35 @@ def verify_telegram_code():
             
         return jsonify({'error': result['error']}), 400
     
-    # Обновляем статус аккаунта в базе данных (в модели)
+    # Обновляем статус аккаунта в базе данных
     # Находим аккаунт по номеру телефона
     current_user_id = get_jwt_identity()
     user_id = int(current_user_id)
     accounts = get_telegram_accounts(user_id)
     
+    session_string = result.get('session_string')
+    account_id = None
+    
     for account in accounts:
         if account['phone'] == phone:
-            # Здесь должен быть код для обновления статуса аккаунта в базе данных
-            # В текущей модели на основе JSON-файла это нужно реализовать отдельно
-            # Пока просто логируем
-            app.logger.info(f"Аккаунт {phone} успешно авторизован")
+            account_id = account['id']
+            # Обновляем данные аккаунта с сохранением строки сессии
+            from backend.models import update_telegram_account
+            update_telegram_account(account_id, 
+                status='authorized', 
+                session_string=session_string
+            )
+            app.logger.info(f"Аккаунт {phone} успешно авторизован и сохранена строка сессии")
             break
+    
+    if not account_id:
+        app.logger.error(f"Не найден аккаунт с номером {phone} для пользователя {user_id}")
+        return jsonify({'error': 'Аккаунт не найден'}), 404
             
     return jsonify({
         'success': True,
         'message': 'Авторизация успешно завершена',
+        'session_saved': bool(session_string),
         'user_info': result.get('user_info', {})
     }), 200
 
@@ -285,8 +297,18 @@ def add_telegram_account():
     if 'error' in result:
         return jsonify({'error': result['error']}), 400
     
+    # Получаем строку сессии, если есть
+    session_string = result.get('session_string')
+    
     # Сохраняем аккаунт в базе данных
-    account_id = save_telegram_account(user_id, account_name, phone, api_id, api_hash)
+    account_id = save_telegram_account(
+        user_id, 
+        account_name, 
+        phone, 
+        api_id, 
+        api_hash, 
+        session_string=session_string
+    )
     
     # Информация об авторизации
     status = 'authorized' if result.get('authorized', False) else 'pending'
@@ -295,6 +317,8 @@ def add_telegram_account():
     message = 'Аккаунт Telegram успешно добавлен'
     if status == 'pending':
         message += '. Для завершения авторизации требуется код подтверждения'
+    elif status == 'authorized' and session_string:
+        message += ' и авторизован с сохранением сессии'
     
     response = {
         'message': message,
@@ -304,7 +328,8 @@ def add_telegram_account():
             'phone': phone,
             'api_id': api_id,
             'api_hash': api_hash,
-            'status': status
+            'status': status,
+            'session_saved': bool(session_string)
         }
     }
     
@@ -319,7 +344,7 @@ def add_telegram_account():
 @jwt_required_custom
 def list_contacts():
     """Список контактов аккаунта Telegram"""
-    from backend.telegram_api import run_async, get_contacts as tg_get_contacts
+    from backend.telegram_api import run_async, get_contacts as tg_get_contacts, create_telegram_client
     
     account_id = request.args.get('account_id', type=int)
     
@@ -338,7 +363,34 @@ def list_contacts():
     
     # Если у аккаунта есть API ID и API Hash, получаем контакты через Telegram API
     if account.get('api_id') and account.get('api_hash'):
-        result = run_async(tg_get_contacts(account['phone']))
+        # Если у аккаунта сохранена строка сессии, пытаемся использовать ее сначала
+        session_string = account.get('session_string')
+        
+        # Если сессия есть, пробуем подключиться с ее использованием
+        if session_string:
+            app.logger.info(f"Подключаемся к аккаунту {account['phone']} с использованием сохраненной сессии")
+            # Создаем клиент с использованием строки сессии
+            client_result = run_async(
+                create_telegram_client(
+                    account['phone'], 
+                    account['api_id'], 
+                    account['api_hash'], 
+                    session_string=session_string
+                )
+            )
+            
+            # Если успешно подключились и авторизованы, получаем контакты
+            if client_result.get('success') and client_result.get('authorized'):
+                app.logger.info(f"Успешно подключились к аккаунту {account['phone']} с использованием сессии")
+                # Получаем контакты
+                result = run_async(tg_get_contacts(account['phone']))
+            else:
+                app.logger.warning(f"Не удалось использовать сохраненную сессию для {account['phone']}: {client_result.get('error', 'неизвестная ошибка')}")
+                # Если не удалось подключиться с сессией, пытаемся получить контакты обычным способом
+                result = run_async(tg_get_contacts(account['phone']))
+        else:
+            # Если нет сохраненной сессии, просто пытаемся получить контакты
+            result = run_async(tg_get_contacts(account['phone']))
         
         if 'error' in result:
             return jsonify({'error': result['error']}), 400
@@ -467,7 +519,7 @@ def import_contacts():
 @jwt_required_custom
 def list_chats():
     """Список чатов аккаунта Telegram"""
-    from backend.telegram_api import run_async, get_dialogs
+    from backend.telegram_api import run_async, get_dialogs, create_telegram_client
     
     account_id = request.args.get('account_id', type=int)
     
@@ -486,7 +538,34 @@ def list_chats():
     
     # Если у аккаунта есть API ID и API Hash, получаем чаты через Telegram API
     if account.get('api_id') and account.get('api_hash'):
-        result = run_async(get_dialogs(account['phone']))
+        # Если у аккаунта сохранена строка сессии, пытаемся использовать ее сначала
+        session_string = account.get('session_string')
+        
+        # Если сессия есть, пробуем подключиться с ее использованием
+        if session_string:
+            app.logger.info(f"Подключаемся к аккаунту {account['phone']} с использованием сохраненной сессии")
+            # Создаем клиент с использованием строки сессии
+            client_result = run_async(
+                create_telegram_client(
+                    account['phone'], 
+                    account['api_id'], 
+                    account['api_hash'], 
+                    session_string=session_string
+                )
+            )
+            
+            # Если успешно подключились и авторизованы, получаем чаты
+            if client_result.get('success') and client_result.get('authorized'):
+                app.logger.info(f"Успешно подключились к аккаунту {account['phone']} с использованием сессии")
+                # Получаем чаты
+                result = run_async(get_dialogs(account['phone']))
+            else:
+                app.logger.warning(f"Не удалось использовать сохраненную сессию для {account['phone']}: {client_result.get('error', 'неизвестная ошибка')}")
+                # Если не удалось подключиться с сессией, пытаемся получить чаты обычным способом
+                result = run_async(get_dialogs(account['phone']))
+        else:
+            # Если нет сохраненной сессии, просто пытаемся получить чаты
+            result = run_async(get_dialogs(account['phone']))
         
         if 'error' in result:
             return jsonify({'error': result['error']}), 400
@@ -607,7 +686,34 @@ def list_messages():
     
     # Если у аккаунта есть API ID и API Hash и в чате есть Telegram ID сущности
     if account.get('api_id') and account.get('api_hash') and chat.get('telegram_entity_id'):
-        result = run_async(tg_get_messages(account['phone'], chat['telegram_entity_id']))
+        # Если у аккаунта сохранена строка сессии, пытаемся использовать ее сначала
+        session_string = account.get('session_string')
+        
+        # Если сессия есть, пробуем подключиться с ее использованием
+        if session_string:
+            app.logger.info(f"Подключаемся к аккаунту {account['phone']} с использованием сохраненной сессии для получения сообщений")
+            # Создаем клиент с использованием строки сессии
+            client_result = run_async(
+                create_telegram_client(
+                    account['phone'], 
+                    account['api_id'], 
+                    account['api_hash'], 
+                    session_string=session_string
+                )
+            )
+            
+            # Если успешно подключились и авторизованы, получаем сообщения
+            if client_result.get('success') and client_result.get('authorized'):
+                app.logger.info(f"Успешно подключились к аккаунту {account['phone']} с использованием сессии")
+                # Получаем сообщения
+                result = run_async(tg_get_messages(account['phone'], chat['telegram_entity_id']))
+            else:
+                app.logger.warning(f"Не удалось использовать сохраненную сессию для {account['phone']}: {client_result.get('error', 'неизвестная ошибка')}")
+                # Если не удалось подключиться с сессией, пытаемся получить сообщения обычным способом
+                result = run_async(tg_get_messages(account['phone'], chat['telegram_entity_id']))
+        else:
+            # Если нет сохраненной сессии, просто пытаемся получить сообщения
+            result = run_async(tg_get_messages(account['phone'], chat['telegram_entity_id']))
         
         if 'error' in result:
             return jsonify({'error': result['error']}), 400
