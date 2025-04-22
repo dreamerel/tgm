@@ -152,12 +152,103 @@ def list_telegram_accounts():
         # Логирование ошибки
         app.logger.error(f"Ошибка при получении списка аккаунтов: {str(e)}")
         return jsonify({'error': 'Не удалось получить список аккаунтов Telegram', 'accounts': []}), 200
+        
+        
+@app.route('/api/telegram/accounts/send-code', methods=['POST'])
+@jwt_required_custom
+def send_telegram_code():
+    """Отправка кода подтверждения для авторизации в Telegram"""
+    from backend.telegram_api import run_async, send_code_request
+    
+    data = request.json
+    phone = data.get('phone')
+    api_id = data.get('api_id')
+    api_hash = data.get('api_hash')
+    
+    if not phone or not api_id or not api_hash:
+        return jsonify({'error': 'Необходимо указать номер телефона, API ID и API Hash'}), 400
+    
+    try:
+        api_id = int(api_id)
+    except ValueError:
+        return jsonify({'error': 'API ID должен быть числом'}), 400
+    
+    # Отправляем запрос на код подтверждения
+    result = run_async(send_code_request(phone, api_id, api_hash))
+    
+    if 'error' in result:
+        return jsonify({'error': result['error']}), 400
+    
+    return jsonify({
+        'success': True,
+        'message': result.get('message', 'Код подтверждения отправлен'),
+        'phone_code_hash': result.get('phone_code_hash', ''),
+        'authorized': result.get('authorized', False)
+    }), 200
+        
+        
+@app.route('/api/telegram/accounts/verify-code', methods=['POST'])
+@jwt_required_custom
+def verify_telegram_code():
+    """Верификация кода подтверждения для авторизации в Telegram"""
+    from backend.telegram_api import run_async, sign_in_with_code
+    
+    data = request.json
+    phone = data.get('phone')
+    code = data.get('code')
+    phone_code_hash = data.get('phone_code_hash')
+    api_id = data.get('api_id')
+    api_hash = data.get('api_hash')
+    password = data.get('password')  # Пароль 2FA (если требуется)
+    
+    if not phone or not code or not phone_code_hash or not api_id or not api_hash:
+        return jsonify({'error': 'Не все необходимые параметры предоставлены'}), 400
+    
+    try:
+        api_id = int(api_id)
+    except ValueError:
+        return jsonify({'error': 'API ID должен быть числом'}), 400
+    
+    # Проверяем код и входим в аккаунт
+    result = run_async(sign_in_with_code(phone, code, phone_code_hash, api_id, api_hash, password))
+    
+    if 'error' in result:
+        # Если требуется 2FA и пароль не был предоставлен
+        if result.get('two_factor_required', False):
+            return jsonify({
+                'error': result['error'],
+                'two_factor_required': True
+            }), 401  # Unauthorized, требуется дополнительная аутентификация
+            
+        return jsonify({'error': result['error']}), 400
+    
+    # Обновляем статус аккаунта в базе данных (в модели)
+    # Находим аккаунт по номеру телефона
+    current_user_id = get_jwt_identity()
+    user_id = int(current_user_id)
+    accounts = get_telegram_accounts(user_id)
+    
+    for account in accounts:
+        if account['phone'] == phone:
+            # Здесь должен быть код для обновления статуса аккаунта в базе данных
+            # В текущей модели на основе JSON-файла это нужно реализовать отдельно
+            # Пока просто логируем
+            app.logger.info(f"Аккаунт {phone} успешно авторизован")
+            break
+            
+    return jsonify({
+        'success': True,
+        'message': 'Авторизация успешно завершена',
+        'user_info': result.get('user_info', {})
+    }), 200
 
 
 @app.route('/api/telegram/accounts', methods=['POST'])
 @jwt_required_custom
 def add_telegram_account():
-    """Добавление нового аккаунта Telegram"""
+    """Добавление нового аккаунта Telegram с использованием Telethon"""
+    from backend.telegram_api import run_async, create_telegram_client
+    
     current_user_id = get_jwt_identity()
     # Преобразуем ID из строки в int
     user_id = int(current_user_id)
@@ -182,16 +273,38 @@ def add_telegram_account():
         except ValueError:
             return jsonify({'error': 'API ID должен быть числом'}), 400
     
-    # Проверяем возможность добавления аккаунта через Telegram API
-    params = {
-        'phone': phone
-    }
+    # Если API ID и API Hash не предоставлены, используем мок для демо-режима
+    if not api_id or not api_hash:
+        # Используем мок для демо-режима
+        params = {
+            'phone': phone
+        }
+        result = simulate_telegram_api_call('add_account', params)
+        
+        if 'error' in result:
+            return jsonify({'error': result['error']}), 400
+        
+        # Сохраняем аккаунт в демо-режиме
+        account_id = save_telegram_account(user_id, account_name, phone)
+        
+        # Определяем статус аккаунта
+        status = 'waiting_for_api'
+        message = 'Аккаунт Telegram успешно добавлен. Для полной функциональности необходимо указать API ID и API Hash'
+        
+        return jsonify({
+            'message': message,
+            'account': {
+                'id': account_id,
+                'account_name': account_name,
+                'phone': phone,
+                'api_id': None,
+                'api_hash': None,
+                'status': status
+            }
+        }), 201
     
-    if api_id and api_hash:
-        params['api_id'] = api_id
-        params['api_hash'] = api_hash
-    
-    result = simulate_telegram_api_call('add_account', params)
+    # Если API ID и API Hash предоставлены, пытаемся подключиться через Telethon
+    result = run_async(create_telegram_client(phone, api_id, api_hash))
     
     if 'error' in result:
         return jsonify({'error': result['error']}), 400
@@ -199,14 +312,15 @@ def add_telegram_account():
     # Сохраняем аккаунт в базе данных
     account_id = save_telegram_account(user_id, account_name, phone, api_id, api_hash)
     
-    # Определяем статус аккаунта
-    status = 'pending' if api_id and api_hash else 'waiting_for_api'
+    # Информация об авторизации
+    status = 'authorized' if result.get('authorized', False) else 'pending'
+    user_info = result.get('user_info', {})
+    
     message = 'Аккаунт Telegram успешно добавлен'
+    if status == 'pending':
+        message += '. Для завершения авторизации требуется код подтверждения'
     
-    if status == 'waiting_for_api':
-        message += '. Для полной функциональности необходимо указать API ID и API Hash'
-    
-    return jsonify({
+    response = {
         'message': message,
         'account': {
             'id': account_id,
@@ -216,7 +330,13 @@ def add_telegram_account():
             'api_hash': api_hash,
             'status': status
         }
-    }), 201
+    }
+    
+    # Если аккаунт авторизован, добавляем информацию о пользователе
+    if status == 'authorized' and user_info:
+        response['account']['user_info'] = user_info
+    
+    return jsonify(response), 201
 
 
 @app.route('/api/telegram/contacts', methods=['GET'])
