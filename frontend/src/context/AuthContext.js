@@ -98,7 +98,25 @@ export const AuthProvider = ({ children }) => {
   // Функция для добавления аккаунта Telegram
   const addTelegramAccount = async (accountData) => {
     try {
-      const response = await api.post('/api/telegram/accounts', accountData);
+      console.log('Отправка запроса на добавление аккаунта:', accountData);
+      // Проверяем наличие всех необходимых данных
+      if (!accountData.phone || !accountData.account_name || !accountData.api_id || !accountData.api_hash) {
+        console.error('Отсутствуют необходимые данные для добавления аккаунта');
+        return {
+          success: false,
+          error: 'Необходимо заполнить все поля (имя аккаунта, телефон, API ID, API Hash)'
+        };
+      }
+      
+      // Форматируем данные API ID как строку для отправки на сервер
+      const formattedData = {
+        ...accountData,
+        api_id: String(accountData.api_id)
+      };
+      
+      console.log('Отправка форматированных данных:', formattedData);
+      const response = await api.post('/api/telegram/accounts', formattedData);
+      console.log('Получен ответ от сервера:', response.data);
       
       // Обновляем информацию о пользователе, чтобы отразить новый аккаунт
       await checkAuth();
@@ -110,9 +128,22 @@ export const AuthProvider = ({ children }) => {
       };
     } catch (error) {
       console.error('Ошибка добавления аккаунта Telegram:', error);
+      let errorMessage = 'Не удалось добавить аккаунт Telegram';
+      
+      if (error.response) {
+        console.error('Детали ошибки:', error.response.data);
+        errorMessage = error.response.data.error || errorMessage;
+      } else if (error.request) {
+        console.error('Нет ответа от сервера:', error.request);
+        errorMessage = 'Нет ответа от сервера API';
+      } else {
+        console.error('Ошибка запроса:', error.message);
+        errorMessage = error.message || errorMessage;
+      }
+      
       return {
         success: false,
-        error: error.response?.data?.error || 'Не удалось добавить аккаунт Telegram'
+        error: errorMessage
       };
     }
   };
