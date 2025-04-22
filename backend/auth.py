@@ -58,6 +58,32 @@ def account_owner_required(fn):
             return jsonify({"error": f"Ошибка авторизации: {str(e)}"}), 401
     return wrapper
 
+def jwt_refresh_token_required(fn):
+    """Декоратор для проверки refresh-токена"""
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        try:
+            # Flask-JWT-Extended не имеет простого способа проверить refresh_token,
+            # так что мы вручную проверим тип токена внутри стандартного декоратора
+            verify_jwt_in_request(refresh=True)
+            
+            # Проверяем, что identity существует и может быть преобразован в int
+            current_user_id = get_jwt_identity()
+            user_id = int(current_user_id)
+            
+            # Проверяем, что пользователь существует в системе
+            user = get_user_by_id(user_id)
+            if not user:
+                return jsonify({"error": "Пользователь не найден"}), 404
+                
+            return fn(*args, **kwargs)
+        except ValueError:
+            return jsonify({"error": "Неверный формат идентификатора пользователя"}), 422
+        except Exception as e:
+            return jsonify({"error": f"Ошибка авторизации при обновлении токена: {str(e)}"}), 401
+    return wrapper
+
+
 def validate_user_input(schema):
     """Декоратор для валидации входных данных"""
     def decorator(fn):

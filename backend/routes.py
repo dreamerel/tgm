@@ -1,10 +1,10 @@
 from flask import request, jsonify
-from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 import time
 
 from backend.app import app
-from backend.auth import jwt_required_custom, account_owner_required
+from backend.auth import jwt_required_custom, account_owner_required, jwt_refresh_token_required
 from backend.models import (
     get_user_by_username, get_user_by_id, save_user,
     get_telegram_accounts, save_telegram_account,
@@ -98,7 +98,7 @@ def login():
 
 
 @app.route('/api/auth/refresh', methods=['POST'])
-@jwt_required(refresh=True)
+@jwt_refresh_token_required
 def refresh():
     """Обновление access токена"""
     try:
@@ -366,7 +366,7 @@ def send_message():
 
 
 @app.route('/api/telegram/auto-replies', methods=['GET'])
-@jwt_required()
+@jwt_required_custom
 def list_auto_replies():
     """Список авто-ответов аккаунта Telegram"""
     account_id = request.args.get('account_id', type=int)
@@ -380,7 +380,7 @@ def list_auto_replies():
 
 
 @app.route('/api/telegram/auto-replies', methods=['POST'])
-@jwt_required()
+@jwt_required_custom
 def add_auto_reply():
     """Добавление нового авто-ответа"""
     data = request.json
@@ -408,7 +408,7 @@ def add_auto_reply():
 
 
 @app.route('/api/telegram/auto-replies/<int:auto_reply_id>', methods=['PUT'])
-@jwt_required()
+@jwt_required_custom
 def update_auto_reply(auto_reply_id):
     """Обновление авто-ответа"""
     data = request.json
@@ -432,7 +432,7 @@ def update_auto_reply(auto_reply_id):
 
 
 @app.route('/api/telegram/mass-sendings', methods=['GET'])
-@jwt_required()
+@jwt_required_custom
 def list_mass_sendings():
     """Список массовых рассылок аккаунта Telegram"""
     account_id = request.args.get('account_id', type=int)
@@ -446,7 +446,7 @@ def list_mass_sendings():
 
 
 @app.route('/api/telegram/mass-sendings', methods=['POST'])
-@jwt_required()
+@jwt_required_custom
 def add_mass_sending():
     """Добавление новой массовой рассылки"""
     data = request.json
@@ -489,7 +489,7 @@ def add_mass_sending():
 
 
 @app.route('/api/telegram/statistics', methods=['GET'])
-@jwt_required()
+@jwt_required_custom
 def get_account_statistics():
     """Получение статистики аккаунта Telegram"""
     account_id = request.args.get('account_id', type=int)
