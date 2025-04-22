@@ -443,7 +443,15 @@
             const firstAccount = accounts[0];
             document.querySelector('.account-icon').textContent = firstAccount.account_name.charAt(0).toUpperCase();
             document.querySelector('.account-name').textContent = firstAccount.account_name;
-            document.querySelector('.account-phone').textContent = firstAccount.phone;
+            
+            // Добавляем индикатор статуса аккаунта
+            let accountStatus = "";
+            if (firstAccount.api_id && firstAccount.api_hash) {
+              accountStatus = "✓ " + firstAccount.phone;
+            } else {
+              accountStatus = "⚠️ " + firstAccount.phone + " (требуются API данные)";
+            }
+            document.querySelector('.account-phone').textContent = accountStatus;
           } else {
             // Показываем сообщение о том, что аккаунтов нет
             document.querySelector('.account-icon').textContent = '?';
@@ -463,10 +471,28 @@
                 const accountPhone = prompt('Введите номер телефона:');
                 
                 if (accountName && accountPhone) {
+                  // Спрашиваем у пользователя, нужно ли добавить API данные
+                  const addApiData = confirm('Хотите добавить API ID и API Hash для полной функциональности?');
+                  
+                  let payload = { account_name: accountName, phone: accountPhone };
+                  
+                  // Если пользователь хочет добавить API данные
+                  if (addApiData) {
+                    const apiId = prompt('Введите API ID (целое число от Telegram):');
+                    const apiHash = prompt('Введите API Hash (строка от Telegram):');
+                    
+                    // Проверяем, что оба поля заполнены
+                    if (apiId && apiHash) {
+                      payload.api_id = apiId;
+                      payload.api_hash = apiHash;
+                    } else if (apiId || apiHash) {
+                      // Если заполнено только одно поле
+                      alert('Необходимо указать оба параметра: API ID и API Hash. Аккаунт будет добавлен без API данных.');
+                    }
+                  }
+                  
                   // Отправляем запрос на добавление аккаунта
-                  axios.post('/api/telegram/accounts', 
-                    { account_name: accountName, phone: accountPhone },
-                    {
+                  axios.post('/api/telegram/accounts', payload, {
                       headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
@@ -474,7 +500,11 @@
                     }
                   )
                   .then(response => {
-                    alert('Аккаунт успешно добавлен!');
+                    if (response.data.account.status === 'waiting_for_api') {
+                      alert('Аккаунт успешно добавлен! Для полной функциональности необходимо указать API ID и API Hash.');
+                    } else {
+                      alert('Аккаунт успешно добавлен!');
+                    }
                     // Перезагружаем список аккаунтов
                     loadAccounts();
                   })
