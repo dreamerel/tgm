@@ -20,13 +20,21 @@ def register():
     data = request.json
     username = data.get('username')
     password = data.get('password')
-    email = data.get('email')
+    email = data.get('email') or None  # Если email пустой, устанавливаем None
     
     if not username or not password:
         return jsonify({'error': 'Требуется указать имя пользователя и пароль'}), 400
     
     if get_user_by_username(username):
         return jsonify({'error': 'Пользователь с таким именем уже существует'}), 409
+    
+    # Если email предоставлен, проверим его уникальность
+    if email:
+        # Проверка на существование пользователя с таким email
+        # В текущей реализации такой функции нет, но она может быть добавлена позже
+        # if get_user_by_email(email):
+        #     return jsonify({'error': 'Пользователь с таким email уже существует'}), 409
+        pass
     
     # Хэшируем пароль и сохраняем пользователя
     password_hash = generate_password_hash(password)
