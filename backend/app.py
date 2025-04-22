@@ -23,5 +23,5 @@ app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
 app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
 jwt = JWTManager(app)
 
-# Включение CORS для разработки
-CORS(app, resources={r"/*": {"origins": "*"}})
+# Включение CORS с расширенной конфигурацией для обработки preflight-запросов
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True, methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])

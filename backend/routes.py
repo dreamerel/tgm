@@ -507,6 +507,18 @@ def health_check():
     """Проверка работоспособности API"""
     return jsonify({'status': 'ok'}), 200
 
+# Добавим обработчик OPTIONS для CORS preflight-запросов
+@app.route('/api/<path:path>', methods=['OPTIONS'])
+def handle_options(path):
+    """Обработка preflight запросов CORS"""
+    response = app.response_class(
+        status=204
+    )
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    return response
+
 
 # Маршруты для React-приложения
 from backend.app import frontend_build_path
