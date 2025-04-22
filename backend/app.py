@@ -34,5 +34,6 @@ CORS(app,
      supports_credentials=True, 
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
      allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Origin"],
-     expose_headers=["Content-Type", "Authorization"],
-     max_age=86400)
+     expose_headers=["Content-Type", "Authorization", "Access-Control-Allow-Origin"],
+     max_age=86400,
+     vary_header=True)

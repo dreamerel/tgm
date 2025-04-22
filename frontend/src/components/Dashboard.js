@@ -7,6 +7,7 @@ import AutoReplies from './AutoReplies';
 import MassSending from './MassSending';
 import Statistics from './Statistics';
 import AccountManager from './AccountManager';
+import ApiTester from './ApiTester';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api';
 
@@ -140,6 +141,7 @@ function Dashboard() {
           <Route path="/mass-sending" element={<MassSending account={selectedAccount} />} />
           <Route path="/statistics" element={<Statistics account={selectedAccount} />} />
           <Route path="/accounts" element={<AccountManager accounts={accounts} onAddAccount={handleAddAccount} />} />
+          <Route path="/api-tester" element={<ApiTester />} />
         </Routes>
       </div>
     );
