@@ -66,9 +66,19 @@ def login():
     if not username or not password:
         return jsonify({'error': 'Требуется указать имя пользователя и пароль'}), 400
     
-    user = get_user_by_username(username)
-    if not user or not check_password_hash(user['password_hash'], password):
-        return jsonify({'error': 'Неверное имя пользователя или пароль'}), 401
+    # Специальная обработка для демо-аккаунта
+    if username == 'demo' and password == 'demo123':
+        # Получаем пользователя или создаем его, если он отсутствует
+        user = get_user_by_username('demo')
+        if not user:
+            # Если демо-пользователь не существует, инициализируем данные
+            from backend.models import init_demo_data
+            init_demo_data()
+            user = get_user_by_username('demo')
+    else:
+        user = get_user_by_username(username)
+        if not user or not check_password_hash(user['password_hash'], password):
+            return jsonify({'error': 'Неверное имя пользователя или пароль'}), 401
     
     # Возвращаем токены для аутентификации
     access_token = create_access_token(identity=user['id'])
@@ -299,11 +309,11 @@ def send_message():
         return jsonify({'error': 'Требуется указать ID чата и текст сообщения'}), 400
     
     # Получаем информацию о чате
-    chat = None
-    for chat_key, chat_value in get_chats(None):
-        if chat_key == chat_id:
-            chat = chat_value
-            break
+    chats_list = []
+    for account in get_telegram_accounts(get_jwt_identity()):
+        chats_list.extend(get_chats(account['id']))
+    
+    chat = next((chat for chat in chats_list if chat['id'] == chat_id), None)
     
     if not chat:
         return jsonify({'error': 'Чат не найден'}), 404
