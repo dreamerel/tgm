@@ -33,22 +33,29 @@ async def create_telegram_client(phone, api_id, api_hash, session_string=None, s
     session_string: Строка сессии (опционально)
     session_name: Имя файла сессии (по умолчанию - номер телефона)
     """
-    # Проверяем, есть ли строка сессии
-    if session_string:
-        # Создаем клиент с использованием строки сессии
-        client = TelegramClient(StringSession(session_string), api_id, api_hash)
-        logger.info(f"Создан клиент для {phone} из строки сессии")
-    else:
-        # Стандартное создание клиента с файловой сессией
-        if not session_name:
-            # Удаляем все нецифровые символы из номера телефона для имени сессии
-            session_name = ''.join(filter(str.isdigit, phone))
-        
-        session_path = SESSIONS_DIR / session_name
-        
-        # Создаем клиент
-        client = TelegramClient(str(session_path), api_id, api_hash)
-        logger.info(f"Создан клиент для {phone} с файловой сессией")
+    try:
+        # Проверяем, есть ли строка сессии
+        if session_string:
+            # Создаем клиент с использованием строки сессии
+            client = TelegramClient(StringSession(session_string), api_id, api_hash)
+            logger.info(f"Создан клиент для {phone} из строки сессии")
+        else:
+            # Стандартное создание клиента с файловой сессией
+            if not session_name:
+                # Удаляем все нецифровые символы из номера телефона для имени сессии
+                session_name = ''.join(filter(str.isdigit, phone))
+            
+            session_path = SESSIONS_DIR / session_name
+            
+            # Создаем клиент
+            client = TelegramClient(str(session_path), api_id, api_hash)
+            logger.info(f"Создан клиент для {phone} с использованием файловой сессии")
+    except Exception as e:
+        logger.error(f"Ошибка при создании клиента Telegram для {phone}: {str(e)}")
+        return {
+            'success': False,
+            'error': f"Не удалось создать клиент Telegram: {str(e)}"
+        }
     
     try:
         # Пытаемся подключиться

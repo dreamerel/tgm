@@ -165,18 +165,40 @@ def send_telegram_code():
     api_id = data.get('api_id')
     api_hash = data.get('api_hash')
     
+    app.logger.info(f"Получен запрос на отправку кода подтверждения: телефон={phone}, api_id={api_id}")
+    
     if not phone or not api_id or not api_hash:
+        app.logger.error(f"Отсутствуют обязательные параметры для отправки кода")
         return jsonify({'error': 'Необходимо указать номер телефона, API ID и API Hash'}), 400
     
     try:
         api_id = int(api_id)
     except ValueError:
+        app.logger.error(f"Некорректный формат API ID: {api_id}")
         return jsonify({'error': 'API ID должен быть числом'}), 400
     
+    # Проверяем, есть ли уже сохраненная сессия для этого аккаунта
+    current_user_id = get_jwt_identity()
+    user_id = int(current_user_id)
+    accounts = get_telegram_accounts(user_id)
+    account = next((acc for acc in accounts if acc['phone'] == phone), None)
+    
+    if account and account.get('session_string'):
+        app.logger.info(f"Аккаунт {phone} уже имеет сохраненную сессию, пропускаем отправку кода")
+        return jsonify({
+            'success': True,
+            'message': 'Аккаунт уже авторизован с использованием сохраненной сессии',
+            'phone_code_hash': '',
+            'authorized': True
+        }), 200
+    
     # Отправляем запрос на код подтверждения
+    app.logger.info(f"Отправляем запрос на получение кода для {phone} с API ID {api_id}")
     result = run_async(send_code_request(phone, api_id, api_hash))
+    app.logger.info(f"Результат запроса кода для {phone}: {result}")
     
     if 'error' in result:
+        app.logger.error(f"Ошибка при отправке кода для {phone}: {result['error']}")
         return jsonify({'error': result['error']}), 400
     
     return jsonify({
