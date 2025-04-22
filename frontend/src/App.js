@@ -17,6 +17,35 @@ function App() {
     initApp();
   }, [checkAuth]);
 
+  // Инициализация Feather иконок
+  useEffect(() => {
+    // Подгружаем иконки Feather если доступны
+    if (window.feather) {
+      window.feather.replace();
+    } else {
+      // Если feather еще не загружен, ждем загрузки
+      const featherScript = document.createElement('script');
+      featherScript.src = 'https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js';
+      featherScript.onload = () => window.feather.replace();
+      document.head.appendChild(featherScript);
+    }
+
+    // Функция для периодического вызова feather.replace()
+    const replaceIcons = () => {
+      if (window.feather) {
+        window.feather.replace();
+      }
+    };
+
+    // Вызываем replaceIcons каждые 2 секунды, чтобы подхватить новые иконки
+    const intervalId = setInterval(replaceIcons, 2000);
+
+    // Очистка при размонтировании
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []);
+
   return (
     <div className="app">
       <Routes>
