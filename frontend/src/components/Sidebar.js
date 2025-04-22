@@ -109,12 +109,7 @@ function Sidebar({ user, accounts, selectedAccount, onAccountChange, onLogout, a
               <span>Управление аккаунтами</span>
             </Link>
           </li>
-          <li className={isActive('/api-tester')}>
-            <Link to="/dashboard/api-tester">
-              <i data-feather="code"></i>
-              <span>API Тестер</span>
-            </Link>
-          </li>
+
         </ul>
       </nav>
       
