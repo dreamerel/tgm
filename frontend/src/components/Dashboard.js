@@ -11,7 +11,7 @@ import { AuthContext } from '../context/AuthContext';
 import api from '../api';
 
 function Dashboard() {
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout, addTelegramAccount } = useContext(AuthContext);
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -51,17 +51,31 @@ function Dashboard() {
   // Обработчик добавления нового аккаунта
   const handleAddAccount = async (accountData) => {
     try {
-      const response = await api.post('/api/telegram/accounts', accountData);
-      setAccounts([...accounts, response.data.account]);
+      // Используем функцию из контекста авторизации
+      const result = await addTelegramAccount(accountData);
       
-      // Выбираем новый аккаунт
-      setSelectedAccount(response.data.account);
-      
-      return { success: true };
+      if (result.success) {
+        // Обновляем список аккаунтов
+        setAccounts([...accounts, result.account]);
+        
+        // Выбираем новый аккаунт
+        setSelectedAccount(result.account);
+        
+        return { 
+          success: true, 
+          account: result.account 
+        };
+      } else {
+        return { 
+          success: false, 
+          error: result.error 
+        };
+      }
     } catch (err) {
+      console.error('Ошибка при добавлении аккаунта:', err);
       return { 
         success: false, 
-        error: err.response?.data?.error || 'Ошибка при добавлении аккаунта' 
+        error: 'Ошибка при добавлении аккаунта' 
       };
     }
   };

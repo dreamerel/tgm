@@ -17,6 +17,8 @@ function AccountManager({ accounts, onAddAccount }) {
   const [addedAccount, setAddedAccount] = useState(null);
   
   const navigate = useNavigate();
+  
+  // Эти обработчики определены ниже, удалим дублирование
 
   // Обработчик добавления нового аккаунта
   const handleAddAccount = async (e) => {

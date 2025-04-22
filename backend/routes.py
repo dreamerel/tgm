@@ -667,9 +667,23 @@ def handle_options(path):
     response = app.response_class(
         status=204
     )
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    
+    # Получаем список разрешенных источников
+    allowed_origins = app.config.get('CORS_ORIGINS', ['*'])
+    
+    # Получаем источник запроса из заголовка
+    origin = request.headers.get('Origin', '*')
+    
+    # Если источник в списке разрешенных или разрешены все источники ('*' в списке)
+    if origin in allowed_origins or '*' in allowed_origins:
+        response.headers.add('Access-Control-Allow-Origin', origin)
+    else:
+        response.headers.add('Access-Control-Allow-Origin', allowed_origins[0] if allowed_origins else '*')
+    
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, Access-Control-Allow-Origin')
     response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    response.headers.add('Access-Control-Max-Age', '86400')  # 24 часа
     return response
 
 
