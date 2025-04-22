@@ -2,6 +2,12 @@ version = 1
 requires-python = ">=3.11"
 
 [[package]]
+name = "backend"
+version = "0.2.4.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/89/c9/f96c6b89e318e607903bae0fcfefefaa76008914c18bd990baec9e39eca0/backend-0.2.4.1.zip", hash = "sha256:e161f8ea74c731752f5b5362e92c6f253add55fb9a80c6ea6f607315b906e79e", size = 7809 }
+
+[[package]]
 name = "blinker"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -335,6 +341,7 @@ name = "repl-nix-workspace"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "backend" },
     { name = "email-validator" },
     { name = "flask" },
     { name = "flask-cors" },
@@ -349,6 +356,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "backend", specifier = ">=0.2.4.1" },
     { name = "email-validator", specifier = ">=2.2.0" },
     { name = "flask", specifier = ">=3.1.0" },
     { name = "flask-cors", specifier = ">=5.0.1" },

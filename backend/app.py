@@ -24,5 +24,15 @@ app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
 jwt = JWTManager(app)
 
 # Включение CORS с расширенной конфигурацией для обработки preflight-запросов
-cors_origin = os.environ.get('CORS_ORIGIN', '*')
-CORS(app, resources={r"/*": {"origins": cors_origin}}, supports_credentials=True, methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+# Если задан CORS_ORIGIN в переменных окружения, используем его
+# Иначе разрешаем все возможные источники, включая Vercel и localhost
+cors_origins = os.environ.get('CORS_ORIGIN', 'https://tgm-tau.vercel.app,http://localhost:3000,*').split(',')
+logging.debug(f"CORS origins: {cors_origins}")
+
+CORS(app, 
+     resources={r"/*": {"origins": cors_origins}}, 
+     supports_credentials=True, 
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Origin"],
+     expose_headers=["Content-Type", "Authorization"],
+     max_age=86400)
