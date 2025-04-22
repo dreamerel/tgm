@@ -10,9 +10,21 @@ def jwt_required_custom(fn):
     def wrapper(*args, **kwargs):
         try:
             verify_jwt_in_request()
+            
+            # Проверяем, что identity существует и может быть преобразован в int
+            current_user_id = get_jwt_identity()
+            user_id = int(current_user_id)
+            
+            # Проверяем, что пользователь существует в системе
+            user = get_user_by_id(user_id)
+            if not user:
+                return jsonify({"error": "Пользователь не найден"}), 404
+                
             return fn(*args, **kwargs)
+        except ValueError:
+            return jsonify({"error": "Неверный формат идентификатора пользователя"}), 422
         except Exception as e:
-            return jsonify({"error": "Требуется авторизация"}), 401
+            return jsonify({"error": f"Ошибка авторизации: {str(e)}"}), 401
     return wrapper
 
 def account_owner_required(fn):
@@ -23,6 +35,9 @@ def account_owner_required(fn):
             verify_jwt_in_request()
             current_user_id = get_jwt_identity()
             
+            # Преобразуем ID пользователя из строки в int
+            user_id = int(current_user_id)
+            
             # Получаем ID аккаунта из параметров запроса
             account_id = request.args.get('account_id')
             if not account_id:
@@ -32,7 +47,7 @@ def account_owner_required(fn):
                 return jsonify({"error": "Требуется указать ID аккаунта"}), 400
             
             # Получаем список аккаунтов пользователя
-            user_accounts = get_telegram_accounts(current_user_id)
+            user_accounts = get_telegram_accounts(user_id)
             
             # Проверяем, принадлежит ли аккаунт пользователю
             if not any(account['id'] == int(account_id) for account in user_accounts):
@@ -40,7 +55,7 @@ def account_owner_required(fn):
             
             return fn(*args, **kwargs)
         except Exception as e:
-            return jsonify({"error": "Требуется авторизация"}), 401
+            return jsonify({"error": f"Ошибка авторизации: {str(e)}"}), 401
     return wrapper
 
 def validate_user_input(schema):

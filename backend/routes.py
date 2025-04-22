@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import time
 
 from backend.app import app
+from backend.auth import jwt_required_custom, account_owner_required
 from backend.models import (
     get_user_by_username, get_user_by_id, save_user,
     get_telegram_accounts, save_telegram_account,
@@ -111,7 +112,7 @@ def refresh():
 
 
 @app.route('/api/user', methods=['GET'])
-@jwt_required()
+@jwt_required_custom
 def get_user():
     """Получение информации о текущем пользователе"""
     try:
