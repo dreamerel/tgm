@@ -24,4 +24,5 @@ app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
 jwt = JWTManager(app)
 
 # Включение CORS с расширенной конфигурацией для обработки preflight-запросов
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True, methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+cors_origin = os.environ.get('CORS_ORIGIN', '*')
+CORS(app, resources={r"/*": {"origins": cors_origin}}, supports_credentials=True, methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])

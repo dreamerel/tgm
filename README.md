@@ -18,7 +18,7 @@
 - Фронтенд: JavaScript, React
 - Хранение данных: JSON (с возможностью миграции на PostgreSQL)
 
-## Установка и запуск
+## Установка и запуск локально
 
 ### Требования
 - Python 3.8+
@@ -29,7 +29,7 @@
 
 ```bash
 # Установка зависимостей Python
-pip install -r requirements.txt
+pip install -r requirements-prod.txt
 
 # Установка зависимостей JavaScript (опционально, для разработки фронтенда)
 cd frontend
@@ -49,6 +49,27 @@ npm start
 
 После запуска сервер будет доступен по адресу http://localhost:5000.
 
+## Деплой на Vercel и Render
+
+### Деплой фронтенда на Vercel
+
+1. Зарегистрируйтесь на [Vercel](https://vercel.com/)
+2. Создайте новый проект, импортировав GitHub репозиторий
+3. Настройки сборки будут автоматически определены из файла `vercel.json`
+4. Добавьте переменную окружения `REACT_APP_API_URL` с URL бэкенда
+
+### Деплой бэкенда на Render
+
+1. Зарегистрируйтесь на [Render](https://render.com/)
+2. Создайте новый Web Service, указав GitHub репозиторий
+3. Настройки:
+   - Environment: Python
+   - Build Command: `pip install -r requirements-prod.txt`
+   - Start Command: `gunicorn --bind 0.0.0.0:$PORT --workers 1 main:app`
+4. Добавьте переменные окружения `FLASK_APP=main.py`, `FLASK_ENV=production` и `CORS_ORIGIN` с URL фронтенда
+
+Альтернативно можно использовать Blue Print Render с файлом `render.yaml` для автоматического развертывания.
+
 ## Демо-аккаунт
 
 Для тестирования доступен демо-аккаунт:
@@ -63,6 +84,10 @@ npm start
 3. Создайте новое приложение
 4. Скопируйте API ID и API Hash
 5. Введите эти данные при добавлении аккаунта Telegram в приложении
+
+## Переменные окружения
+
+Для настройки приложения используйте файл `.env.sample` как образец.
 
 ## Лицензия
 
