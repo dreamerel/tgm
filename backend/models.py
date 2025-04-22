@@ -115,9 +115,11 @@ def get_user_by_id(user_id):
     return data['users'].get(str(user_id))
 
 
-def save_telegram_account(user_id, account_name, phone, api_id=None, api_hash=None):
+def save_telegram_account(user_id, account_name, phone, api_id=None, api_hash=None, session_string=None):
     """Сохранить аккаунт Telegram"""
     account_id = get_next_id('telegram_accounts')
+    status = 'authorized' if session_string else ('pending' if api_id and api_hash else 'waiting_for_api')
+    
     data['telegram_accounts'][str(account_id)] = {
         'id': account_id,
         'user_id': user_id,
@@ -125,8 +127,9 @@ def save_telegram_account(user_id, account_name, phone, api_id=None, api_hash=No
         'phone': phone,
         'api_id': api_id,
         'api_hash': api_hash,
+        'session_string': session_string,
         'created_at': datetime_to_str(datetime.utcnow()),
-        'status': 'pending' if api_id and api_hash else 'waiting_for_api'
+        'status': status
     }
     save_data()  # Сохраняем изменения в файл
     return account_id
@@ -136,6 +139,25 @@ def get_telegram_accounts(user_id):
     """Получить все аккаунты Telegram пользователя"""
     return [account for account_id, account in data['telegram_accounts'].items() 
             if account['user_id'] == user_id]
+
+
+def update_telegram_account(account_id, **kwargs):
+    """Обновить данные аккаунта Telegram"""
+    str_account_id = str(account_id)
+    if str_account_id not in data['telegram_accounts']:
+        return False
+    
+    # Обновляем поля
+    for key, value in kwargs.items():
+        if key in data['telegram_accounts'][str_account_id]:
+            data['telegram_accounts'][str_account_id][key] = value
+    
+    # Если обновляем строку сессии, считаем аккаунт авторизованным
+    if 'session_string' in kwargs and kwargs['session_string']:
+        data['telegram_accounts'][str_account_id]['status'] = 'authorized'
+    
+    save_data()  # Сохраняем изменения в файл
+    return True
 
 
 def save_contact(account_id, name, phone):

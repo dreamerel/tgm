@@ -3,11 +3,13 @@ import logging
 import asyncio
 from pathlib import Path
 from telethon import TelegramClient
+from telethon.sessions import StringSession
 from telethon.errors import (
     PhoneNumberInvalidError, 
     ApiIdInvalidError, 
     PhoneCodeInvalidError,
-    SessionPasswordNeededError
+    SessionPasswordNeededError,
+    FloodWaitError
 )
 
 # Настройка логирования
@@ -21,23 +23,32 @@ SESSIONS_DIR.mkdir(exist_ok=True)
 # Кэш клиентов Telegram для разных аккаунтов
 clients = {}
 
-async def create_telegram_client(phone, api_id, api_hash, session_name=None):
+async def create_telegram_client(phone, api_id, api_hash, session_string=None, session_name=None):
     """
     Создает и возвращает клиент Telegram
     
     phone: Номер телефона аккаунта
     api_id: API ID из my.telegram.org
     api_hash: API Hash из my.telegram.org
+    session_string: Строка сессии (опционально)
     session_name: Имя файла сессии (по умолчанию - номер телефона)
     """
-    if not session_name:
-        # Удаляем все нецифровые символы из номера телефона для имени сессии
-        session_name = ''.join(filter(str.isdigit, phone))
-    
-    session_path = SESSIONS_DIR / session_name
-    
-    # Создаем клиент
-    client = TelegramClient(str(session_path), api_id, api_hash)
+    # Проверяем, есть ли строка сессии
+    if session_string:
+        # Создаем клиент с использованием строки сессии
+        client = TelegramClient(StringSession(session_string), api_id, api_hash)
+        logger.info(f"Создан клиент для {phone} из строки сессии")
+    else:
+        # Стандартное создание клиента с файловой сессией
+        if not session_name:
+            # Удаляем все нецифровые символы из номера телефона для имени сессии
+            session_name = ''.join(filter(str.isdigit, phone))
+        
+        session_path = SESSIONS_DIR / session_name
+        
+        # Создаем клиент
+        client = TelegramClient(str(session_path), api_id, api_hash)
+        logger.info(f"Создан клиент для {phone} с файловой сессией")
     
     try:
         # Пытаемся подключиться
@@ -52,9 +63,14 @@ async def create_telegram_client(phone, api_id, api_hash, session_name=None):
             # Получаем информацию о пользователе
             me = await client.get_me()
             
+            # Создаем строку сессии для сохранения (если еще не было)
+            if not session_string:
+                session_string = StringSession.save(client.session)
+            
             return {
                 'success': True, 
                 'authorized': True,
+                'session_string': session_string,
                 'user_info': {
                     'id': me.id,
                     'first_name': me.first_name,
@@ -165,9 +181,13 @@ async def sign_in_with_code(phone, code, phone_code_hash, api_id, api_hash, pass
             # Получаем информацию о пользователе
             me = await client.get_me()
             
+            # Создаем строку сессии для сохранения
+            session_string = StringSession.save(client.session)
+            
             return {
                 'success': True, 
                 'authorized': True,
+                'session_string': session_string,
                 'user_info': {
                     'id': me.id,
                     'first_name': me.first_name,
@@ -184,9 +204,13 @@ async def sign_in_with_code(phone, code, phone_code_hash, api_id, api_hash, pass
             # Сохраняем клиент в кэше
             clients[phone] = client
             
+            # Создаем строку сессии для сохранения
+            session_string = StringSession.save(client.session)
+            
             return {
                 'success': True,
                 'authorized': True,
+                'session_string': session_string,
                 'user_info': {
                     'id': user.id,
                     'first_name': user.first_name,
@@ -208,9 +232,13 @@ async def sign_in_with_code(phone, code, phone_code_hash, api_id, api_hash, pass
                 # Сохраняем клиент в кэше
                 clients[phone] = client
                 
+                # Создаем строку сессии для сохранения
+                session_string = StringSession.save(client.session)
+                
                 return {
                     'success': True,
                     'authorized': True,
+                    'session_string': session_string,
                     'user_info': {
                         'id': user.id,
                         'first_name': user.first_name,
