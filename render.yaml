@@ -10,10 +10,7 @@ services:
       - key: FLASK_ENV
         value: production
       - key: CORS_ORIGIN
-        fromService:
-          name: tgm-frontend
-          type: web
-          property: url
+        value: "https://tgm-tau.vercel.app,https://tgm-tau.vercel.app/,http://localhost:3000,*"
     autoDeploy: true
 
   - type: web
