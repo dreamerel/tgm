@@ -1,16 +1,20 @@
 import os
 import logging
 from datetime import timedelta
+from pathlib import Path
 
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
 
+# Определение пути к собранным файлам React
+frontend_build_path = Path(__file__).resolve().parent.parent / 'frontend' / 'build'
+
 # Создание приложения Flask
-app = Flask(__name__)
+app = Flask(__name__, static_folder=str(frontend_build_path / 'static'))
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
 
 # Настройка JWT
@@ -23,4 +27,4 @@ jwt = JWTManager(app)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Импорт маршрутов после создания приложения
-from routes import *
+from backend.routes import *

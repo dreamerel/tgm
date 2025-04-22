@@ -2,7 +2,7 @@ from functools import wraps
 from flask import request, jsonify
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 
-from models import get_user_by_id, get_telegram_accounts
+from backend.models import get_user_by_id, get_telegram_accounts
 
 def jwt_required_custom(fn):
     """Декоратор для проверки JWT токена"""

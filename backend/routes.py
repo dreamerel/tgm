@@ -3,15 +3,15 @@ from flask_jwt_extended import create_access_token, create_refresh_token, jwt_re
 from werkzeug.security import generate_password_hash, check_password_hash
 import time
 
-from app import app
-from models import (
+from backend.app import app
+from backend.models import (
     get_user_by_username, get_user_by_id, save_user,
     get_telegram_accounts, save_telegram_account,
     get_contacts, save_contact, get_chats, save_chat,
     get_messages, save_message, get_auto_replies, save_auto_reply,
     get_mass_sendings, save_mass_sending, get_statistics, update_statistics
 )
-from telegram_mock import simulate_telegram_api_call
+from backend.telegram_mock import simulate_telegram_api_call
 
 
 @app.route('/api/register', methods=['POST'])
@@ -464,3 +464,25 @@ def get_account_statistics():
 def health_check():
     """Проверка работоспособности API"""
     return jsonify({'status': 'ok'}), 200
+
+
+# Маршруты для React-приложения
+from backend.app import frontend_build_path
+from flask import send_from_directory
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_react(path):
+    """
+    Обслуживает React-приложение.
+    Все пути, кроме /api/*, направляются на index.html фронтенда
+    """
+    if path.startswith('api/'):
+        return jsonify({"error": "Not Found"}), 404
+        
+    # Проверяем, существует ли запрашиваемый файл
+    if path and (frontend_build_path / path).exists():
+        return send_from_directory(str(frontend_build_path), path)
+    
+    # В противном случае возвращаем index.html для поддержки маршрутизации на стороне клиента
+    return send_from_directory(str(frontend_build_path), 'index.html')
