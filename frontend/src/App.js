@@ -19,31 +19,54 @@ function App() {
 
   // Инициализация Feather иконок
   useEffect(() => {
-    // Подгружаем иконки Feather если доступны
-    if (window.feather) {
-      window.feather.replace();
-    } else {
-      // Если feather еще не загружен, ждем загрузки
+    // Загружаем скрипт Feather Icons, если он еще не загружен
+    if (!document.getElementById('feather-icons-script')) {
       const featherScript = document.createElement('script');
+      featherScript.id = 'feather-icons-script';
       featherScript.src = 'https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js';
-      featherScript.onload = () => window.feather.replace();
+      featherScript.async = true;
+      
+      // Когда скрипт загрузится, вызываем replace() и устанавливаем наблюдателя мутаций
+      featherScript.onload = () => {
+        if (window.feather) {
+          console.log('Feather Icons loaded, initializing icons');
+          window.feather.replace();
+          
+          // Используем MutationObserver для отслеживания изменений в DOM
+          const observer = new MutationObserver((mutations) => {
+            if (window.feather) {
+              console.log('DOM changed, replacing icons');
+              window.feather.replace();
+            }
+          });
+          
+          // Начинаем наблюдение за всем документом
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true
+          });
+          
+          // Также периодически обновляем иконки для подстраховки
+          const intervalId = setInterval(() => {
+            if (window.feather) {
+              window.feather.replace();
+            }
+          }, 2000);
+          
+          // Сохраняем observer и intervalId для очистки при размонтировании
+          return () => {
+            observer.disconnect();
+            clearInterval(intervalId);
+          };
+        }
+      };
+      
       document.head.appendChild(featherScript);
+    } else if (window.feather) {
+      // Если скрипт уже загружен, просто вызываем replace()
+      console.log('Feather script already loaded, replacing icons');
+      window.feather.replace();
     }
-
-    // Функция для периодического вызова feather.replace()
-    const replaceIcons = () => {
-      if (window.feather) {
-        window.feather.replace();
-      }
-    };
-
-    // Вызываем replaceIcons каждые 2 секунды, чтобы подхватить новые иконки
-    const intervalId = setInterval(replaceIcons, 2000);
-
-    // Очистка при размонтировании
-    return () => {
-      clearInterval(intervalId);
-    };
   }, []);
 
   return (

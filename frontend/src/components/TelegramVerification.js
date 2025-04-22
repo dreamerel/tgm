@@ -12,10 +12,16 @@ function TelegramVerification({ account, onSuccess, onCancel }) {
   
   // Автоматически отправляем запрос на код при открытии компонента
   React.useEffect(() => {
-    if (step === 'sendCode') {
-      handleSendCode();
-    }
-  }, []);
+    // Используем setTimeout, чтобы код выполнился после рендеринга компонента
+    const timer = setTimeout(() => {
+      if (step === 'sendCode') {
+        console.log('Автоматическая отправка кода для аккаунта:', account);
+        handleSendCode();
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [step]);
   
   // Отправка запроса на код подтверждения
   const handleSendCode = async () => {

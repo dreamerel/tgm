@@ -52,31 +52,37 @@ function Dashboard() {
   // Обработчик добавления нового аккаунта
   const handleAddAccount = async (accountData) => {
     try {
+      console.log('Отправка данных аккаунта:', accountData);
       // Используем функцию из контекста авторизации
       const result = await addTelegramAccount(accountData);
+      console.log('Результат добавления аккаунта:', result);
       
       if (result.success) {
-        // Обновляем список аккаунтов
-        setAccounts([...accounts, result.account]);
-        
-        // Выбираем новый аккаунт
-        setSelectedAccount(result.account);
+        console.log('Успешно добавлен аккаунт:', result.account);
+        // Обновляем список аккаунтов, если аккаунт добавлен успешно
+        if (result.account && result.account.id) {
+          setAccounts(prevAccounts => [...prevAccounts, result.account]);
+          
+          // Выбираем новый аккаунт
+          setSelectedAccount(result.account);
+        }
         
         return { 
           success: true, 
           account: result.account 
         };
       } else {
+        console.error('Ошибка при добавлении аккаунта:', result.error);
         return { 
           success: false, 
-          error: result.error 
+          error: result.error || 'Неизвестная ошибка при добавлении аккаунта'
         };
       }
     } catch (err) {
-      console.error('Ошибка при добавлении аккаунта:', err);
+      console.error('Исключение при добавлении аккаунта:', err);
       return { 
         success: false, 
-        error: 'Ошибка при добавлении аккаунта' 
+        error: err.message || 'Ошибка при добавлении аккаунта' 
       };
     }
   };
