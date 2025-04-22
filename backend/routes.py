@@ -56,7 +56,7 @@ def register():
     }), 201
 
 
-@app.route('/api/login', methods=['POST'])
+@app.route('/api/auth/login', methods=['POST'])
 def login():
     """Вход пользователя"""
     data = request.json
@@ -96,7 +96,7 @@ def login():
     }), 200
 
 
-@app.route('/api/refresh', methods=['POST'])
+@app.route('/api/auth/refresh', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh():
     """Обновление access токена"""

@@ -59,7 +59,7 @@
         
         try {
           // Запрос на API для входа
-          const response = await axios.post('/api/login', {
+          const response = await axios.post('/api/auth/login', {
             username,
             password
           });
