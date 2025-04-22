@@ -5,13 +5,30 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import './styles/main.css';
 
-ReactDOM.render(
-  <React.StrictMode>
-    <Router>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </Router>
-  </React.StrictMode>,
-  document.getElementById('root')
-);
+// Используем createRoot для React 18+ или render для более старых версий
+const root = document.getElementById('root');
+if (ReactDOM.createRoot) {
+  // React 18+
+  const rootElement = ReactDOM.createRoot(root);
+  rootElement.render(
+    <React.StrictMode>
+      <Router>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </Router>
+    </React.StrictMode>
+  );
+} else {
+  // React < 18
+  ReactDOM.render(
+    <React.StrictMode>
+      <Router>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </Router>
+    </React.StrictMode>,
+    root
+  );
+}
