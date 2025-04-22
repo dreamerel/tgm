@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Регистрация - Telegram Manager</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+  <!-- Иконка сайта -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📱</text></svg>">
+  <style>
+    /* Базовые стили из main.css */
+    :root {
+      --primary-color: #2aabee;
+      --primary-hover: #229ed9;
+      --secondary-color: #0088cc;
+      --light-color: #f5f5f5;
+      --dark-color: #333333;
+      --accent-color: #ffc107;
+      --danger-color: #dc3545;
+      --success-color: #28a745;
+      --bg-color: #ffffff;
+      --text-color: #333333;
+      --border-color: #e0e0e0;
+      --border-radius: 8px;
+      --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: var(--light-color);
+      color: var(--text-color);
+      line-height: 1.5;
+    }
+
+    .auth-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: var(--light-color);
+      padding: 20px;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 400px;
+      background-color: var(--bg-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      padding: 30px;
+    }
+
+    .auth-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .auth-logo {
+      font-size: 40px;
+      color: var(--primary-color);
+      margin-bottom: 10px;
+    }
+
+    .auth-header h1 {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+
+    .auth-header p {
+      color: #666;
+      font-size: 16px;
+    }
+
+    .auth-footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+      border-color: var(--primary-hover);
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="auth-logo">📱</div>
+          <h1>Регистрация</h1>
+          <p>Создание аккаунта Telegram Manager</p>
+        </div>
+        <form id="registerForm">
+          <div class="mb-3">
+            <label for="username" class="form-label">Имя пользователя</label>
+            <input type="text" class="form-control" id="username" required>
+          </div>
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" required>
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Пароль</label>
+            <input type="password" class="form-control" id="password" required>
+          </div>
+          <div class="mb-3">
+            <label for="confirmPassword" class="form-label">Подтверждение пароля</label>
+            <input type="password" class="form-control" id="confirmPassword" required>
+          </div>
+          <div id="registerError" class="alert alert-danger d-none mb-3">
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Зарегистрироваться</button>
+        </form>
+        <div class="auth-footer">
+          Уже есть аккаунт? <a href="/" id="loginLink">Войти</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    // Инициализация иконок после загрузки DOM
+    document.addEventListener('DOMContentLoaded', () => {
+      feather.replace();
+      
+      // Обработчик формы регистрации
+      const registerForm = document.getElementById('registerForm');
+      const registerError = document.getElementById('registerError');
+      
+      registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        
+        // Проверка на совпадение паролей
+        if (password !== confirmPassword) {
+          registerError.textContent = 'Пароли не совпадают';
+          registerError.classList.remove('d-none');
+          return;
+        }
+        
+        try {
+          // Запрос на API для регистрации
+          const response = await axios.post('/api/register', {
+            username,
+            email,
+            password
+          });
+          
+          // Сохраняем токены в localStorage
+          localStorage.setItem('access_token', response.data.access_token);
+          localStorage.setItem('refresh_token', response.data.refresh_token);
+          
+          // Перенаправляем на дашборд
+          window.location.href = '/dashboard';
+        } catch (error) {
+          console.error('Ошибка регистрации:', error);
+          
+          if (error.response && error.response.data && error.response.data.error) {
+            registerError.textContent = error.response.data.error;
+          } else {
+            registerError.textContent = 'Ошибка при регистрации. Пожалуйста, попробуйте снова.';
+          }
+          
+          registerError.classList.remove('d-none');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

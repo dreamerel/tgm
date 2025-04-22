@@ -20,7 +20,7 @@
           <h1>Telegram Manager</h1>
           <p>Управление аккаунтами для менеджеров</p>
         </div>
-        <form>
+        <form id="loginForm">
           <div class="mb-3">
             <label for="username" class="form-label">Имя пользователя</label>
             <input type="text" class="form-control" id="username" required>
@@ -29,19 +29,53 @@
             <label for="password" class="form-label">Пароль</label>
             <input type="password" class="form-control" id="password" required>
           </div>
+          <div id="loginError" class="alert alert-danger d-none mb-3">
+            Неверное имя пользователя или пароль
+          </div>
           <button type="submit" class="btn btn-primary w-100">Войти</button>
         </form>
         <div class="auth-footer">
-          Ещё нет аккаунта? <a href="/register">Зарегистрироваться</a>
+          Ещё нет аккаунта? <a href="/register" id="registerLink">Зарегистрироваться</a>
         </div>
       </div>
     </div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script>
     // Инициализация иконок после загрузки DOM
     document.addEventListener('DOMContentLoaded', () => {
       feather.replace();
+      
+      // Обработчик формы входа
+      const loginForm = document.getElementById('loginForm');
+      const loginError = document.getElementById('loginError');
+      
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        
+        try {
+          // Запрос на API для входа
+          const response = await axios.post('/api/login', {
+            username,
+            password
+          });
+          
+          // Сохраняем токены в localStorage
+          localStorage.setItem('access_token', response.data.access_token);
+          localStorage.setItem('refresh_token', response.data.refresh_token);
+          
+          // Перенаправляем на дашборд
+          window.location.href = '/dashboard';
+        } catch (error) {
+          console.error('Ошибка входа:', error);
+          
+          loginError.classList.remove('d-none');
+        }
+      });
     });
   </script>
 </body>
