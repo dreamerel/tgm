@@ -15,4 +15,5 @@ dependencies = [
     "flask-jwt-extended>=4.7.1",
     "werkzeug>=3.1.3",
     "backend>=0.2.4.1",
+    "telethon>=1.40.0",
 ]
