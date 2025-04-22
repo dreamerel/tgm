@@ -81,8 +81,8 @@ def login():
             return jsonify({'error': 'Неверное имя пользователя или пароль'}), 401
     
     # Возвращаем токены для аутентификации
-    access_token = create_access_token(identity=user['id'])
-    refresh_token = create_refresh_token(identity=user['id'])
+    access_token = create_access_token(identity=str(user['id']))
+    refresh_token = create_refresh_token(identity=str(user['id']))
     
     return jsonify({
         'message': 'Успешный вход',
@@ -116,7 +116,9 @@ def get_user():
     """Получение информации о текущем пользователе"""
     try:
         current_user_id = get_jwt_identity()
-        user = get_user_by_id(current_user_id)
+        # Преобразуем ID из строки в int
+        user_id = int(current_user_id)
+        user = get_user_by_id(user_id)
         
         if not user:
             return jsonify({'error': 'Пользователь не найден'}), 404
@@ -140,7 +142,9 @@ def list_telegram_accounts():
     """Список аккаунтов Telegram пользователя"""
     try:
         current_user_id = get_jwt_identity()
-        accounts = get_telegram_accounts(current_user_id)
+        # Преобразуем ID из строки в int
+        user_id = int(current_user_id)
+        accounts = get_telegram_accounts(user_id)
         
         return jsonify({'accounts': accounts}), 200
     except Exception as e:
@@ -154,6 +158,8 @@ def list_telegram_accounts():
 def add_telegram_account():
     """Добавление нового аккаунта Telegram"""
     current_user_id = get_jwt_identity()
+    # Преобразуем ID из строки в int
+    user_id = int(current_user_id)
     data = request.json
     
     account_name = data.get('account_name')
@@ -168,7 +174,7 @@ def add_telegram_account():
     if 'error' in result:
         return jsonify({'error': result['error']}), 400
     
-    account_id = save_telegram_account(current_user_id, account_name, phone)
+    account_id = save_telegram_account(user_id, account_name, phone)
     
     return jsonify({
         'message': 'Аккаунт Telegram успешно добавлен',
@@ -310,7 +316,10 @@ def send_message():
     
     # Получаем информацию о чате
     chats_list = []
-    for account in get_telegram_accounts(get_jwt_identity()):
+    current_user_id = get_jwt_identity()
+    # Преобразуем ID из строки в int
+    user_id = int(current_user_id)
+    for account in get_telegram_accounts(user_id):
         chats_list.extend(get_chats(account['id']))
     
     chat = next((chat for chat in chats_list if chat['id'] == chat_id), None)
@@ -327,9 +336,9 @@ def send_message():
     if 'error' in result:
         return jsonify({'error': result['error']}), 400
     
-    # Сохраняем сообщение как отправленное пользователем (sender_id=0)
-    current_user_id = get_jwt_identity()
-    message_id = save_message(chat_id, current_user_id, message_text)
+    # Сохраняем сообщение как отправленное пользователем
+    # current_user_id уже определен выше, используем user_id после преобразования
+    message_id = save_message(chat_id, user_id, message_text)
     
     # Обновляем статистику
     update_statistics(chat['account_id'], sent=1)
