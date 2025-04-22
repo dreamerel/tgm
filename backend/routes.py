@@ -90,38 +90,53 @@ def login():
 @jwt_required(refresh=True)
 def refresh():
     """Обновление access токена"""
-    current_user_id = get_jwt_identity()
-    access_token = create_access_token(identity=current_user_id)
-    return jsonify({'access_token': access_token}), 200
+    try:
+        current_user_id = get_jwt_identity()
+        access_token = create_access_token(identity=current_user_id)
+        return jsonify({'access_token': access_token}), 200
+    except Exception as e:
+        # Логирование ошибки
+        app.logger.error(f"Ошибка при обновлении токена: {str(e)}")
+        return jsonify({'error': 'Не удалось обновить токен'}), 401
 
 
 @app.route('/api/user', methods=['GET'])
 @jwt_required()
 def get_user():
     """Получение информации о текущем пользователе"""
-    current_user_id = get_jwt_identity()
-    user = get_user_by_id(current_user_id)
-    
-    if not user:
-        return jsonify({'error': 'Пользователь не найден'}), 404
-    
-    return jsonify({
-        'user': {
-            'id': user['id'],
-            'username': user['username'],
-            'email': user['email']
-        }
-    }), 200
+    try:
+        current_user_id = get_jwt_identity()
+        user = get_user_by_id(current_user_id)
+        
+        if not user:
+            return jsonify({'error': 'Пользователь не найден'}), 404
+        
+        return jsonify({
+            'user': {
+                'id': user['id'],
+                'username': user['username'],
+                'email': user['email']
+            }
+        }), 200
+    except Exception as e:
+        # Логирование ошибки
+        app.logger.error(f"Ошибка при получении данных пользователя: {str(e)}")
+        return jsonify({'error': 'Не удалось получить данные пользователя'}), 400
 
 
 @app.route('/api/telegram/accounts', methods=['GET'])
 @jwt_required()
 def list_telegram_accounts():
     """Список аккаунтов Telegram пользователя"""
-    current_user_id = get_jwt_identity()
-    accounts = get_telegram_accounts(current_user_id)
-    
-    return jsonify({'accounts': accounts}), 200
+    try:
+        current_user_id = get_jwt_identity()
+        accounts = get_telegram_accounts(current_user_id)
+        
+        return jsonify({'accounts': accounts}), 200
+    except Exception as e:
+        # Логирование ошибки
+        app.logger.error(f"Ошибка при получении списка аккаунтов: {str(e)}")
+        return jsonify({'error': 'Не удалось получить список аккаунтов Telegram', 'accounts': []}), 200
 
 
 @app.route('/api/telegram/accounts', methods=['POST'])

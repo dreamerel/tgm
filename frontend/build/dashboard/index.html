@@ -371,7 +371,8 @@
           // Делаем запрос к API для получения информации о пользователе
           const response = await axios.get('/api/user', {
             headers: {
-              'Authorization': `Bearer ${token}`
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
             }
           });
           
@@ -391,7 +392,8 @@
               if (refresh_token) {
                 const refreshResponse = await axios.post('/api/refresh', {}, {
                   headers: {
-                    'Authorization': `Bearer ${refresh_token}`
+                    'Authorization': `Bearer ${refresh_token}`,
+                    'Content-Type': 'application/json'
                   }
                 });
                 
@@ -429,7 +431,8 @@
           
           const response = await axios.get('/api/telegram/accounts', {
             headers: {
-              'Authorization': `Bearer ${token}`
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
             }
           });
           
