@@ -94,6 +94,28 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
   };
+  
+  // Функция для добавления аккаунта Telegram
+  const addTelegramAccount = async (accountData) => {
+    try {
+      const response = await api.post('/api/telegram/accounts', accountData);
+      
+      // Обновляем информацию о пользователе, чтобы отразить новый аккаунт
+      await checkAuth();
+      
+      return {
+        success: true,
+        account: response.data.account,
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error('Ошибка добавления аккаунта Telegram:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Не удалось добавить аккаунт Telegram'
+      };
+    }
+  };
 
   return (
     <AuthContext.Provider
@@ -104,7 +126,8 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
-        checkAuth
+        checkAuth,
+        addTelegramAccount
       }}
     >
       {children}

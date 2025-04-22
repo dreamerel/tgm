@@ -13,6 +13,8 @@ function AccountManager({ accounts, onAddAccount }) {
   const [showApiFields, setShowApiFields] = useState(false);
   const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
+  const [addedAccount, setAddedAccount] = useState(null);
   
   const navigate = useNavigate();
 
@@ -68,18 +70,26 @@ function AccountManager({ accounts, onAddAccount }) {
         ? newAccount 
         : { account_name: newAccount.account_name, phone: newAccount.phone };
       
-      const result = await onAddAccount(accountData);
+      const response = await onAddAccount(accountData);
       
-      if (result.success) {
-        // Сбрасываем форму и скрываем её
-        setNewAccount({ account_name: '', phone: '', api_id: '', api_hash: '' });
-        setShowApiFields(false);
-        setShowAddForm(false);
-        
-        // Перенаправляем на страницу чатов
-        navigate('/dashboard');
+      if (response.account) {
+        // Проверяем, нужна ли верификация
+        if (showApiFields && response.account.status === 'pending') {
+          // Сохраняем добавленный аккаунт и показываем экран верификации
+          setAddedAccount(response.account);
+          setShowVerification(true);
+          setShowAddForm(false);
+        } else {
+          // Сбрасываем форму и скрываем её
+          setNewAccount({ account_name: '', phone: '', api_id: '', api_hash: '' });
+          setShowApiFields(false);
+          setShowAddForm(false);
+          
+          // Перенаправляем на страницу чатов
+          navigate('/dashboard');
+        }
       } else {
-        setFormError(result.error || 'Не удалось добавить аккаунт');
+        setFormError(response.error || 'Не удалось добавить аккаунт');
       }
     } catch (err) {
       setFormError('Произошла ошибка при добавлении аккаунта');
@@ -87,6 +97,21 @@ function AccountManager({ accounts, onAddAccount }) {
     } finally {
       setLoading(false);
     }
+  };
+  
+  // Обработчик успешной верификации
+  const handleVerificationSuccess = (data) => {
+    console.log('Верификация успешна:', data);
+    setShowVerification(false);
+    setAddedAccount(null);
+    // Перенаправляем на страницу чатов
+    navigate('/dashboard');
+  };
+  
+  // Обработчик отмены верификации
+  const handleVerificationCancel = () => {
+    setShowVerification(false);
+    setAddedAccount(null);
   };
 
   // Рендер списка аккаунтов
@@ -293,6 +318,14 @@ function AccountManager({ accounts, onAddAccount }) {
       {renderAccountsList()}
       
       {showAddForm && renderAddAccountForm()}
+      
+      {showVerification && addedAccount && (
+        <TelegramVerification 
+          account={addedAccount} 
+          onSuccess={handleVerificationSuccess}
+          onCancel={handleVerificationCancel}
+        />
+      )}
     </div>
   );
 }
