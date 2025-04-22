@@ -3,7 +3,13 @@ import { useNavigate } from 'react-router-dom';
 
 function AccountManager({ accounts, onAddAccount }) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newAccount, setNewAccount] = useState({ account_name: '', phone: '' });
+  const [newAccount, setNewAccount] = useState({ 
+    account_name: '', 
+    phone: '',
+    api_id: '',
+    api_hash: ''
+  });
+  const [showApiFields, setShowApiFields] = useState(false);
   const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -15,24 +21,58 @@ function AccountManager({ accounts, onAddAccount }) {
     setFormError('');
     setLoading(true);
     
+    // Проверяем обязательные поля
     if (!newAccount.account_name || !newAccount.phone) {
       setFormError('Заполните все обязательные поля');
       setLoading(false);
       return;
     }
     
+    // Проверяем формат телефона
     if (!newAccount.phone.startsWith('+') || newAccount.phone.length < 10) {
       setFormError('Номер телефона должен начинаться с + и содержать не менее 10 цифр');
       setLoading(false);
       return;
     }
     
+    // Проверяем API ID и API Hash, если они заполнены
+    if (showApiFields) {
+      // Если одно из полей заполнено, а другое нет
+      if ((newAccount.api_id && !newAccount.api_hash) || (!newAccount.api_id && newAccount.api_hash)) {
+        setFormError('Необходимо указать оба параметра: API ID и API Hash');
+        setLoading(false);
+        return;
+      }
+      
+      // Если API ID заполнен, проверяем его формат
+      if (newAccount.api_id) {
+        if (isNaN(newAccount.api_id) || newAccount.api_id.length < 6) {
+          setFormError('API ID должен быть числом не менее 6 знаков');
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // Если API Hash заполнен, проверяем его формат
+      if (newAccount.api_hash && newAccount.api_hash.length < 30) {
+        setFormError('API Hash должен содержать не менее 30 символов');
+        setLoading(false);
+        return;
+      }
+    }
+    
     try {
-      const result = await onAddAccount(newAccount);
+      // Если API поля не отображаются, удаляем их из запроса
+      const accountData = showApiFields 
+        ? newAccount 
+        : { account_name: newAccount.account_name, phone: newAccount.phone };
+      
+      const result = await onAddAccount(accountData);
       
       if (result.success) {
         // Сбрасываем форму и скрываем её
-        setNewAccount({ account_name: '', phone: '' });
+        setNewAccount({ account_name: '', phone: '', api_id: '', api_hash: '' });
+        setShowApiFields(false);
         setShowAddForm(false);
         
         // Перенаправляем на страницу чатов
@@ -158,6 +198,55 @@ function AccountManager({ accounts, onAddAccount }) {
               />
               <div className="form-text">Укажите номер телефона, привязанный к аккаунту Telegram</div>
             </div>
+            
+            <div className="mb-3">
+              <div className="form-check form-switch">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="showApiFieldsSwitch"
+                  checked={showApiFields}
+                  onChange={() => setShowApiFields(!showApiFields)}
+                />
+                <label className="form-check-label" htmlFor="showApiFieldsSwitch">
+                  Добавить API ID и API Hash
+                </label>
+              </div>
+              <div className="form-text">
+                Для полной функциональности нужны API ID и API Hash от Telegram.
+                <a href="https://my.telegram.org/apps" target="_blank" rel="noopener noreferrer" className="ms-1">
+                  Получить их можно здесь
+                </a>
+              </div>
+            </div>
+            
+            {showApiFields && (
+              <>
+                <div className="mb-3">
+                  <label htmlFor="apiId" className="form-label">API ID</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    id="apiId"
+                    value={newAccount.api_id}
+                    onChange={(e) => setNewAccount({ ...newAccount, api_id: e.target.value })}
+                    placeholder="12345678"
+                  />
+                </div>
+                
+                <div className="mb-3">
+                  <label htmlFor="apiHash" className="form-label">API Hash</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    id="apiHash"
+                    value={newAccount.api_hash}
+                    onChange={(e) => setNewAccount({ ...newAccount, api_hash: e.target.value })}
+                    placeholder="1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p"
+                  />
+                </div>
+              </>
+            )}
             
             <div className="text-end">
               <button 

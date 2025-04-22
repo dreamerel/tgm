@@ -25,19 +25,44 @@ def simulate_telegram_api_call(method, params):
     if method == 'add_account':
         # Проверка формата телефона (примитивная)
         phone = params.get('phone', '')
+        api_id = params.get('api_id')
+        api_hash = params.get('api_hash')
+        
         if not phone.startswith('+') or len(phone) < 10:
             return {
                 'error': 'Неверный формат номера телефона. Используйте формат +XXXXXXXXXXX'
             }
         
-        # Успешный ответ
-        return {
+        # Проверка API ID и API Hash, если они предоставлены
+        if api_id and api_hash:
+            # В реальном приложении здесь был бы код для проверки API ID и API Hash через Telegram API
+            # Сейчас просто имитируем успешную проверку
+            if str(api_id).isdigit() and len(str(api_id)) >= 6 and len(api_hash) >= 30:
+                # Все проверки пройдены
+                pass
+            else:
+                return {
+                    'error': 'Неверный формат API ID или API Hash. API ID должен быть числом не менее 6 знаков, а API Hash должен быть строкой длиной не менее 30 символов.'
+                }
+        
+        # Формируем успешный ответ
+        response = {
             'success': True,
             'account': {
                 'phone': phone,
                 'created_at': datetime.now().isoformat()
             }
         }
+        
+        if api_id and api_hash:
+            response['account']['api_id'] = api_id
+            response['account']['api_hash'] = api_hash
+            response['account']['auth_status'] = 'pending'
+        else:
+            response['account']['auth_status'] = 'waiting_for_api'
+            response['message'] = 'Аккаунт добавлен, но для полной функциональности требуются API ID и API Hash'
+        
+        return response
     
     elif method == 'add_contact':
         # Проверка данных контакта

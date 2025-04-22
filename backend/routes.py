@@ -165,24 +165,56 @@ def add_telegram_account():
     
     account_name = data.get('account_name')
     phone = data.get('phone')
+    api_id = data.get('api_id')
+    api_hash = data.get('api_hash')
     
     if not account_name or not phone:
         return jsonify({'error': 'Требуется указать название аккаунта и номер телефона'}), 400
     
-    # Проверяем возможность добавления аккаунта через мок API Telegram
-    result = simulate_telegram_api_call('add_account', {'phone': phone})
+    # Проверяем API ID и API Hash, если они предоставлены
+    if (api_id and not api_hash) or (not api_id and api_hash):
+        return jsonify({'error': 'Необходимо указать оба параметра: API ID и API Hash'}), 400
+    
+    # Проверяем валидность API ID, если он предоставлен
+    if api_id:
+        try:
+            api_id = int(api_id)
+        except ValueError:
+            return jsonify({'error': 'API ID должен быть числом'}), 400
+    
+    # Проверяем возможность добавления аккаунта через Telegram API
+    params = {
+        'phone': phone
+    }
+    
+    if api_id and api_hash:
+        params['api_id'] = api_id
+        params['api_hash'] = api_hash
+    
+    result = simulate_telegram_api_call('add_account', params)
     
     if 'error' in result:
         return jsonify({'error': result['error']}), 400
     
-    account_id = save_telegram_account(user_id, account_name, phone)
+    # Сохраняем аккаунт в базе данных
+    account_id = save_telegram_account(user_id, account_name, phone, api_id, api_hash)
+    
+    # Определяем статус аккаунта
+    status = 'pending' if api_id and api_hash else 'waiting_for_api'
+    message = 'Аккаунт Telegram успешно добавлен'
+    
+    if status == 'waiting_for_api':
+        message += '. Для полной функциональности необходимо указать API ID и API Hash'
     
     return jsonify({
-        'message': 'Аккаунт Telegram успешно добавлен',
+        'message': message,
         'account': {
             'id': account_id,
             'account_name': account_name,
-            'phone': phone
+            'phone': phone,
+            'api_id': api_id,
+            'api_hash': api_hash,
+            'status': status
         }
     }), 201
 

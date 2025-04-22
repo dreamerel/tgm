@@ -115,7 +115,7 @@ def get_user_by_id(user_id):
     return data['users'].get(str(user_id))
 
 
-def save_telegram_account(user_id, account_name, phone):
+def save_telegram_account(user_id, account_name, phone, api_id=None, api_hash=None):
     """Сохранить аккаунт Telegram"""
     account_id = get_next_id('telegram_accounts')
     data['telegram_accounts'][str(account_id)] = {
@@ -123,7 +123,10 @@ def save_telegram_account(user_id, account_name, phone):
         'user_id': user_id,
         'account_name': account_name,
         'phone': phone,
-        'created_at': datetime_to_str(datetime.utcnow())
+        'api_id': api_id,
+        'api_hash': api_hash,
+        'created_at': datetime_to_str(datetime.utcnow()),
+        'status': 'pending' if api_id and api_hash else 'waiting_for_api'
     }
     save_data()  # Сохраняем изменения в файл
     return account_id
