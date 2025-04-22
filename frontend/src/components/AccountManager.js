@@ -10,7 +10,6 @@ function AccountManager({ accounts, onAddAccount }) {
     api_id: '',
     api_hash: ''
   });
-  const [showApiFields, setShowApiFields] = useState(false);
   const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
@@ -40,51 +39,44 @@ function AccountManager({ accounts, onAddAccount }) {
       return;
     }
     
-    // Проверяем API ID и API Hash, если они заполнены
-    if (showApiFields) {
-      // Если одно из полей заполнено, а другое нет
-      if ((newAccount.api_id && !newAccount.api_hash) || (!newAccount.api_id && newAccount.api_hash)) {
-        setFormError('Необходимо указать оба параметра: API ID и API Hash');
-        setLoading(false);
-        return;
-      }
-      
-      // Если API ID заполнен, проверяем его формат
-      if (newAccount.api_id) {
-        if (isNaN(newAccount.api_id) || newAccount.api_id.length < 6) {
-          setFormError('API ID должен быть числом не менее 6 знаков');
-          setLoading(false);
-          return;
-        }
-      }
-      
-      // Если API Hash заполнен, проверяем его формат
-      if (newAccount.api_hash && newAccount.api_hash.length < 30) {
-        setFormError('API Hash должен содержать не менее 30 символов');
-        setLoading(false);
-        return;
-      }
+    // Проверяем API ID и API Hash (теперь обязательные поля)
+    // Если одно из полей заполнено, а другое нет
+    if (!newAccount.api_id || !newAccount.api_hash) {
+      setFormError('Необходимо указать оба параметра: API ID и API Hash');
+      setLoading(false);
+      return;
+    }
+    
+    // Проверяем формат API ID
+    if (isNaN(newAccount.api_id) || newAccount.api_id.length < 6) {
+      setFormError('API ID должен быть числом не менее 6 знаков');
+      setLoading(false);
+      return;
+    }
+    
+    // Проверяем формат API Hash
+    if (newAccount.api_hash.length < 30) {
+      setFormError('API Hash должен содержать не менее 30 символов');
+      setLoading(false);
+      return;
     }
     
     try {
-      // Если API поля не отображаются, удаляем их из запроса
-      const accountData = showApiFields 
-        ? newAccount 
-        : { account_name: newAccount.account_name, phone: newAccount.phone };
+      // Теперь всегда отправляем API ID и API Hash
+      const accountData = newAccount;
       
       const response = await onAddAccount(accountData);
       
       if (response.account) {
-        // Проверяем, нужна ли верификация
-        if (showApiFields && response.account.status === 'pending') {
-          // Сохраняем добавленный аккаунт и показываем экран верификации
+        // Сохраняем добавленный аккаунт и показываем экран верификации
+        if (response.account.status === 'pending') {
+          // Начинаем процесс верификации
           setAddedAccount(response.account);
           setShowVerification(true);
           setShowAddForm(false);
         } else {
-          // Сбрасываем форму и скрываем её
+          // Аккаунт добавлен без необходимости верификации (маловероятно)
           setNewAccount({ account_name: '', phone: '', api_id: '', api_hash: '' });
-          setShowApiFields(false);
           setShowAddForm(false);
           
           // Перенаправляем на страницу чатов
