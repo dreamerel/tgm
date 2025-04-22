@@ -1,0 +1,67 @@
+Ошибка регистрации: vt {message: 'Request failed with status code 405', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {…}, request: XMLHttpRequest, …}
+register @ AuthContext.js:82
+await in register
+onSubmit @ Register.js:33
+$e @ react-dom.production.min.js:52
+Je @ react-dom.production.min.js:52
+(анонимная) @ react-dom.production.min.js:53
+Cr @ react-dom.production.min.js:100
+Pr @ react-dom.production.min.js:101
+(анонимная) @ react-dom.production.min.js:113
+Ue @ react-dom.production.min.js:292
+(анонимная) @ react-dom.production.min.js:50
+Fr @ react-dom.production.min.js:105
+Zt @ react-dom.production.min.js:75
+Yt @ react-dom.production.min.js:74
+t.unstable_runWithPriority @ scheduler.production.min.js:18
+Ha @ react-dom.production.min.js:122
+Ae @ react-dom.production.min.js:292
+Gt @ react-dom.production.min.js:73Пояснение к ошибке
+AuthContext.js:46 
+            
+            
+           POST https://tgm-git-main-dreamerels-projects.vercel.app/api/auth/login 405 (Method Not Allowed)
+(анонимная) @ xhr.js:195
+xhr @ xhr.js:15
+An @ dispatchRequest.js:51
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+(анонимная) @ Axios.js:226
+(анонимная) @ bind.js:5
+login @ AuthContext.js:46
+onSubmit @ Login.js:25
+$e @ react-dom.production.min.js:52
+Je @ react-dom.production.min.js:52
+(анонимная) @ react-dom.production.min.js:53
+Cr @ react-dom.production.min.js:100
+Pr @ react-dom.production.min.js:101
+(анонимная) @ react-dom.production.min.js:113
+Ue @ react-dom.production.min.js:292
+(анонимная) @ react-dom.production.min.js:50
+Fr @ react-dom.production.min.js:105
+Zt @ react-dom.production.min.js:75
+Yt @ react-dom.production.min.js:74
+t.unstable_runWithPriority @ scheduler.production.min.js:18
+Ha @ react-dom.production.min.js:122
+Ae @ react-dom.production.min.js:292
+Gt @ react-dom.production.min.js:73Пояснение к ошибке
+AuthContext.js:58 Ошибка входа: vt {message: 'Request failed with status code 405', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {…}, request: XMLHttpRequest, …}
+login @ AuthContext.js:58
+await in login
+onSubmit @ Login.js:25
+$e @ react-dom.production.min.js:52
+Je @ react-dom.production.min.js:52
+(анонимная) @ react-dom.production.min.js:53
+Cr @ react-dom.production.min.js:100
+Pr @ react-dom.production.min.js:101
+(анонимная) @ react-dom.production.min.js:113
+Ue @ react-dom.production.min.js:292
+(анонимная) @ react-dom.production.min.js:50
+Fr @ react-dom.production.min.js:105
+Zt @ react-dom.production.min.js:75
+Yt @ react-dom.production.min.js:74
+t.unstable_runWithPriority @ scheduler.production.min.js:18
+Ha @ react-dom.production.min.js:122
+Ae @ react-dom.production.min.js:292
+Gt @ react-dom.production.min.js:73Пояснение к ошибке
